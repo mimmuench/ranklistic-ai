@@ -29,6 +29,7 @@ type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [lang, setLang] = useState<'en' | 'tr'>('en');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -61,15 +62,32 @@ export default function App() {
           setAuthError(sessionError.message);
         }
         
-        if (mounted) {
-          setUser(session?.user ?? null);
+        if (mounted && session?.user) {
+          setUser(session.user);
+          
+          // Profile bilgilerini çek
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile && !profileError) {
+            setUserProfile(profile);
+          }
+          
           setLoading(false);
           
           // Eğer URL'de #access_token varsa (magic link'ten döndüyse)
           if (window.location.hash.includes('access_token')) {
-            console.log('Magic link detected, cleaning URL...');
-            // URL'i temizle
+            console.log('Auth token detected, cleaning URL...');
             window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } else {
+          if (mounted) {
+            setUser(null);
+            setUserProfile(null);
+            setLoading(false);
           }
         }
       } catch (error) {
@@ -87,13 +105,36 @@ export default function App() {
       console.log('Auth state changed:', event, session?.user?.email);
       
       if (mounted) {
-        setUser(session?.user ?? null);
+        if (session?.user) {
+          setUser(session.user);
+          
+          // Profile bilgilerini çek
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile) {
+            setUserProfile(profile);
+          }
+        } else {
+          setUser(null);
+          setUserProfile(null);
+        }
+        
         setLoading(false);
         
         // Başarılı giriş sonrası
         if (event === 'SIGNED_IN' && session) {
           console.log('User signed in successfully!');
           setAuthError(null);
+          
+          // Last login zamanını güncelle
+          await supabase
+            .from('profiles')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('id', session.user.id);
         }
         
         // Magic link ile giriş
@@ -206,7 +247,42 @@ export default function App() {
   // --- YARDIMCI FONKSİYONLAR ---
   const useCredit = async (amount: number = 1): Promise<boolean> => {
     if (!user) return false;
-    return true; 
+    
+    try {
+      // Supabase function'ı çağır
+      const { data, error } = await supabase.rpc('deduct_credits', {
+        user_uuid: user.id,
+        credit_amount: amount,
+        transaction_reason: 'feature_usage'
+      });
+      
+      if (error) {
+        console.error('Credit deduction error:', error);
+        alert('Insufficient credits. Please upgrade your plan.');
+        return false;
+      }
+      
+      if (data === false) {
+        alert('Insufficient credits. Please upgrade your plan.');
+        return false;
+      }
+      
+      // Profile'ı yeniden yükle
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile) {
+        setUserProfile(profile);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Credit error:', error);
+      return false;
+    }
   };
 
   const handleAudit = async (url: string, manualStats?: any) => {
@@ -288,8 +364,8 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={(t) => setActiveTab(t)} 
         lang={lang} 
-        credits={user?.user_metadata?.credits || 5} 
-        userPlan={user?.user_metadata?.plan || 'Free'}
+        credits={userProfile?.credits || 0} 
+        userPlan={userProfile?.plan || 'free'}
         userEmail={user.email}
         onOpenSubscription={() => setShowSubscriptionModal(true)}
         isMobileOpen={isMobileOpen}
@@ -300,10 +376,10 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         <Header 
-          credits={user?.user_metadata?.credits || 5} 
+          credits={userProfile?.credits || 0} 
           lang={lang} 
           onOpenSubscription={() => setShowSubscriptionModal(true)}
-          userPlan={user?.user_metadata?.plan || 'Free'}
+          userPlan={userProfile?.plan || 'free'}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
@@ -312,8 +388,8 @@ export default function App() {
             {activeTab === 'dashboard' && (
               <Dashboard 
                 lang={lang}
-                userCredits={user?.user_metadata?.credits || 5}
-                userPlan={user?.user_metadata?.plan || 'Free'}
+                userCredits={userProfile?.credits || 0}
+                userPlan={userProfile?.plan || 'free'}
                 onNewAudit={() => setActiveTab('audit')}
                 onNewListing={() => setActiveTab('optimizer')}
                 onNewMarket={() => setActiveTab('market')}
@@ -355,7 +431,7 @@ export default function App() {
                     result={auditResult} 
                     onStartChat={startAuditChat} 
                     shopUrl={auditResult.shopName || "Your Shop"}
-                    userPlan={user?.user_metadata?.plan || 'Free'}
+                    userPlan={userProfile?.plan || 'free'}
                     brandSettings={userSettings}
                   />
                 </div>
@@ -389,8 +465,8 @@ export default function App() {
             <div className={isVisible('reelGen')}>
               <ReelGen 
                 lang={lang} 
-                userCredits={user?.user_metadata?.credits || 0} 
-                userPlan={user?.user_metadata?.plan} 
+                userCredits={userProfile?.credits || 0} 
+                userPlan={userProfile?.plan || 'free'} 
                 onDeductCredit={useCredit} 
                 onOpenSubscription={() => setShowSubscriptionModal(true)} 
               />

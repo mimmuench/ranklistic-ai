@@ -65,8 +65,25 @@ const LOCAL_STORAGE_KEY = 'ranklistic_mock_user';
 const MOCK_DB_KEY = 'ranklistic_mock_db';
 
 const getMockUser = (): UserProfile | null => {
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    try {
+        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!stored) return null;
+        
+        const parsed = JSON.parse(stored);
+        
+        // Validation: Ensure it has required fields to prevent crash
+        if (parsed && typeof parsed === 'object' && 'email' in parsed) {
+             // Migration defaults
+             if (!parsed.plan) parsed.plan = 'free';
+             if (typeof parsed.credits !== 'number') parsed.credits = 0;
+             return parsed as UserProfile;
+        }
+        return null;
+    } catch (e) {
+        console.warn("Detected corrupted user data in local storage. Clearing to prevent crash.");
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        return null;
+    }
 };
 
 const setMockUser = (user: UserProfile | null) => {
@@ -140,6 +157,14 @@ export const supabaseMock = {
         resetPasswordForEmail: async (email: string, options: any) => {
             if (supabase) {
                 return await supabase.auth.resetPasswordForEmail(email, options);
+            }
+            return { data: {}, error: null };
+        },
+
+        // Update User (Password etc)
+        updateUser: async (attributes: any) => {
+            if (supabase) {
+                return await supabase.auth.updateUser(attributes);
             }
             return { data: {}, error: null };
         },

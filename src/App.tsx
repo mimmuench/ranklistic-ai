@@ -61,6 +61,10 @@ export default function App() {
       const { data } = supabaseMock.auth.onAuthStateChange((event, session) => {
           if (event === 'SIGNED_IN') setUser(session?.user);
           if (event === 'SIGNED_OUT') setUser(null);
+          // Auto-open settings if user clicked "Reset Password" link
+          if (event === 'PASSWORD_RECOVERY') {
+              setShowSettingsModal(true);
+          }
       });
       // return () => data.subscription.unsubscribe();
   }, []);
@@ -136,7 +140,12 @@ export default function App() {
   const isVisible = (id: string) => activeTab === id ? 'block' : 'hidden';
 
   if (!user) {
-      return <LandingPage onGetStarted={(l) => setLang(l)} />;
+      return (
+        <LandingPage 
+            onGetStarted={(l) => setLang(l)} 
+            onLoginSuccess={(u) => setUser(u)} 
+        />
+      );
   }
 
   return (
@@ -147,6 +156,7 @@ export default function App() {
             lang={lang} 
             credits={user.credits}
             userPlan={user.plan}
+            userEmail={user.email}
             onOpenSubscription={() => setShowSubscriptionModal(true)}
             isMobileOpen={isMobileOpen}
             setIsMobileOpen={setIsMobileOpen}
@@ -173,6 +183,9 @@ export default function App() {
                             onNewAudit={() => setActiveTab('audit')}
                             onNewListing={() => setActiveTab('optimizer')}
                             onNewMarket={() => setActiveTab('market')}
+                            onGoToLaunchpad={() => setActiveTab('launchpad')}
+                            onGoToReelGen={() => setActiveTab('reelGen')}
+                            onGoToTrendRadar={() => setActiveTab('trendRadar')}
                             onLoadReport={(record) => {
                                 if (record.type === 'audit') {
                                     setAuditResult(record.data);

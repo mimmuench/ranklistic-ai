@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
-import { CloseIcon, UserIcon, CreditCardIcon, BrandIcon, CheckCircleIcon, PrinterIcon, StarIcon, SaveIcon } from './icons';
-import type { UserProfile } from '../services/supabaseService';
+import { CloseIcon, UserIcon, CreditCardIcon, BrandIcon, CheckCircleIcon, PrinterIcon, StarIcon, SaveIcon, KeyIcon } from './icons';
+import { supabaseMock, UserProfile } from '../services/supabaseService';
 import type { UserSettings } from '../types';
 
 interface SettingsModalProps {
@@ -30,17 +30,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
     const [activeTab, setActiveTab] = useState<'profile' | 'billing' | 'branding'>('profile');
     const [formData, setFormData] = useState<UserSettings>(settings);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Password Change State
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordMsg, setPasswordMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!isOpen) return null;
 
     const handleSave = () => {
         setIsSaving(true);
-        // Simulate API call
+        // Simulate API call for settings
         setTimeout(() => {
             onSaveSettings(formData);
             setIsSaving(false);
         }, 800);
+    };
+
+    const handlePasswordUpdate = async () => {
+        if (!newPassword) return;
+        if (newPassword !== confirmPassword) {
+            setPasswordMsg({ type: 'error', text: lang === 'tr' ? "Şifreler eşleşmiyor" : "Passwords do not match" });
+            return;
+        }
+        if (newPassword.length < 6) {
+            setPasswordMsg({ type: 'error', text: lang === 'tr' ? "Şifre en az 6 karakter olmalı" : "Password must be at least 6 chars" });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const { error } = await supabaseMock.auth.updateUser({ password: newPassword });
+            if (error) throw error;
+            setPasswordMsg({ type: 'success', text: lang === 'tr' ? "Şifre güncellendi!" : "Password updated successfully!" });
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (e: any) {
+            setPasswordMsg({ type: 'error', text: e.message });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -52,7 +83,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
     };
 
     const isAgency = user.plan === 'agency';
-    // Dynamic Name based on Plan instead of hardcoded "Demo User"
     const defaultName = isAgency ? "Agency Administrator" : "Store Owner";
 
     return (
@@ -69,7 +99,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
                             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${activeTab === 'profile' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
                         >
                             <UserIcon className="w-5 h-5" />
-                            <span className="font-medium">Profile</span>
+                            <span className="font-medium">Profile & Security</span>
                         </button>
                         <button 
                             onClick={() => setActiveTab('billing')}
@@ -103,25 +133,73 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
                         
                         {/* PROFILE TAB */}
                         {activeTab === 'profile' && (
-                            <div className="space-y-6 max-w-lg">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
-                                    <input type="email" value={user.email} disabled className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed" />
+                            <div className="space-y-8 max-w-lg">
+                                <div className="space-y-4">
+                                    <h4 className="text-white font-bold text-lg">General Info</h4>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+                                        <input type="email" value={user.email} disabled className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                                        <input type="text" defaultValue={defaultName} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500" />
+                                    </div>
+                                    <div className="pt-2">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={formData.notifications} 
+                                                onChange={e => setFormData({...formData, notifications: e.target.checked})}
+                                                className="w-5 h-5 rounded bg-gray-900 border-gray-600 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-gray-300">Receive email notifications for audit reports</span>
+                                        </label>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-                                    <input type="text" defaultValue={defaultName} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500" />
-                                </div>
-                                <div className="pt-4">
-                                    <label className="flex items-center gap-3 cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            checked={formData.notifications} 
-                                            onChange={e => setFormData({...formData, notifications: e.target.checked})}
-                                            className="w-5 h-5 rounded bg-gray-900 border-gray-600 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <span className="text-gray-300">Receive email notifications for audit reports</span>
-                                    </label>
+
+                                <div className="border-t border-gray-700 pt-6">
+                                    <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                                        <KeyIcon className="w-5 h-5 text-orange-500"/>
+                                        Change Password
+                                    </h4>
+                                    <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700 space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">New Password</label>
+                                            <input 
+                                                type="password" 
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                className="w-full p-2 bg-gray-900 border border-gray-600 rounded text-white text-sm focus:border-orange-500"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">Confirm Password</label>
+                                            <input 
+                                                type="password" 
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="w-full p-2 bg-gray-900 border border-gray-600 rounded text-white text-sm focus:border-orange-500"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                        
+                                        {passwordMsg && (
+                                            <div className={`text-xs p-2 rounded ${passwordMsg.type === 'success' ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                                                {passwordMsg.text}
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-end">
+                                            <button 
+                                                onClick={handlePasswordUpdate}
+                                                disabled={isSaving || !newPassword}
+                                                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50"
+                                            >
+                                                Update Password
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -246,13 +324,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
 
                     {/* Footer Actions */}
                     <div className="p-6 border-t border-gray-700 bg-[#1E293B] flex justify-end">
-                        <button onClick={onClose} className="px-6 py-2 text-gray-400 hover:text-white font-bold mr-4">Cancel</button>
+                        <button onClick={onClose} className="px-6 py-2 text-gray-400 hover:text-white font-bold mr-4">Close</button>
                         <button 
                             onClick={handleSave} 
                             disabled={isSaving}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50"
                         >
-                            {isSaving ? 'Saving...' : <><SaveIcon className="w-4 h-4"/> Save Changes</>}
+                            {isSaving ? 'Saving...' : <><SaveIcon className="w-4 h-4"/> Save Profile</>}
                         </button>
                     </div>
                 </div>
