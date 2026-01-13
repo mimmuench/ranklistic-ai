@@ -91,52 +91,48 @@ export default function App() {
   if (loading) return <div className="h-screen bg-[#0B0F19] flex items-center justify-center text-white">Loading Ranklistic...</div>;
 
   return (
-    <BrowserRouter> {/* BASENAME HATASINI ÇÖZEN SARICI */}
-      <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
-        
-        {/* Kullanıcı Giriş Yapmışsa Sidebar ve Header Göster */}
-        {user && (
-          <Sidebar 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-            lang={lang} 
-            credits={userProfile?.credits || 0} 
-            userPlan={userProfile?.plan || 'free'}
-            userEmail={user.email}
-            onOpenSubscription={() => setShowSubscriptionModal(true)}
-            onSignOut={() => supabase.auth.signOut()}
-            onOpenSettings={() => setShowSettingsModal(true)}
-            isMobileOpen={false}
-            setIsMobileOpen={() => {}}
-          />
-        )}
+  <BrowserRouter>
+    <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
+      
+      {/* SADECE user varsa Sidebar'ı göster */}
+      {user && (
+        <Sidebar 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          lang={lang} 
+          credits={userProfile?.credits || 0} 
+          // ... diğer sidebar propsları
+        />
+      )}
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* SADECE user varsa Header'ı göster (LandingPage'de çift görünmesin diye) */}
+        {user && (
           <Header 
             credits={userProfile?.credits} 
             lang={lang} 
             onOpenSubscription={() => setShowSubscriptionModal(true)}
             userPlan={userProfile?.plan || 'free'}
           />
+        )}
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            {!user ? (
-              <LandingPage 
-                onGetStarted={() => {/* Auth Modal tetikleyici */}}
-                onEmailPasswordLogin={() => {}}
-                onGoogleLogin={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-              />
-            ) : (
-              <div className="max-w-7xl mx-auto">
-                {activeTab === 'dashboard' && <Dashboard lang={lang} userCredits={userProfile?.credits} userPlan={userProfile?.plan} onNewAudit={() => setActiveTab('audit')} onNewListing={() => setActiveTab('optimizer')} onNewMarket={() => setActiveTab('market')} onGoToLaunchpad={() => setActiveTab('launchpad')} onGoToReelGen={() => setActiveTab('reelGen')} onGoToTrendRadar={() => setActiveTab('trendRadar')} onLoadReport={() => {}} onOpenSubscription={() => setShowSubscriptionModal(true)} />}
-                {/* Diğer Tab İçerikleri Buraya Gelecek */}
-              </div>
-            )}
-          </main>
-        </div>
-
-        <SubscriptionModal isOpen={showSubscriptionModal} onClose={() => setShowSubscriptionModal(false)} lang={lang} onSuccess={() => {}} />
+        <main className="flex-1 overflow-y-auto">
+          {!user ? (
+            /* Giriş yapmamış kullanıcı sadece LandingPage görür */
+            <LandingPage 
+              onGetStarted={() => setShowSignupModal(true)}
+              onLogin={() => setShowLoginModal(true)} // Login butonu için
+              onGoogleLogin={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+            />
+          ) : (
+            /* Giriş yapmış kullanıcı paneli görür */
+            <div className="p-4 md:p-8 max-w-7xl mx-auto">
+               {activeTab === 'dashboard' && <Dashboard ... />}
+               {/* ... diğer tablar */}
+            </div>
+          )}
+        </main>
       </div>
-    </BrowserRouter>
-  );
-}
+    </div>
+  </BrowserRouter>
+);

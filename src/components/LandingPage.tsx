@@ -883,7 +883,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
         </div>
         
         <div className="flex items-center space-x-4">
-             <div className="hidden flex bg-gray-800 rounded-full p-1 border border-gray-700">
+            {/* Dil Seçici (Gizli kalabilir veya aktif edebilirsin) */}
+             <div className="hidden md:flex bg-gray-800 rounded-full p-1 border border-gray-700">
                 <button 
                   onClick={() => setLang('en')} 
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}
@@ -898,14 +899,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                 </button>
              </div>
 
+            {/* Login Butonu (Yazı şeklinde, daha zarif) */}
             <button 
-            onClick={handleOpenLogin}
-            className="bg-white text-gray-900 px-6 py-2.5 rounded-full font-bold hover:bg-gray-200 transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] text-sm"
+              onClick={handleOpenLogin}
+              className="text-gray-300 hover:text-white font-bold text-sm px-2 transition-colors"
             >
-            {t.nav.login}
+              {t.nav.login}
+            </button>
+
+            {/* Get Started Butonu (Turuncu-Pembe Gradyan, dikkat çekici) */}
+            <button 
+              onClick={handleOpenLogin}
+              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-6 py-2.5 rounded-full font-bold hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all transform hover:scale-105 text-sm"
+            >
+              GET STARTED
             </button>
         </div>
-      </nav>
 
       {/* HERO SECTION */}
       <header className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl py-16 md:py-24 relative z-10">
