@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js'; // Gerçek bağlantı için
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -17,17 +17,22 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { SettingsModal } from './components/SettingsModal';
 import { LandingPage } from './components/LandingPage';
 import { ChatModal } from './components/ChatModal';
-import { supabaseMock, UserProfile } from './services/supabaseService';
 import { runEtsyAudit, getChatResponse } from './services/geminiService';
 import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessage } from './types';
+
+// --- 1. GERÇEK SUPABASE BAĞLANTISI ---
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
 
 export default function App() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<any>(null); // Gerçek user objesi
   const [lang, setLang] = useState<'en' | 'tr'>('en');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [loading, setLoading] = useState(true); // Yüklenme durumu
   
   // Modals
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -50,36 +55,41 @@ export default function App() {
       notifications: true
   });
 
-  // Auth Check
+  // --- 2. AUTH KONTROLÜ (GÜNCELLENDİ) ---
   useEffect(() => {
-      const checkUser = async () => {
-          const u = await supabaseMock.auth.getUser();
-          setUser(u);
-      };
-      checkUser();
-      
-      const { data } = supabaseMock.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN') setUser(session?.user);
-          if (event === 'SIGNED_OUT') setUser(null);
+      // Sayfa ilk açıldığında oturum var mı bak
+      supabase.auth.getSession().then(({ data: { session } }) => {
+          setUser(session?.user ?? null);
+          setLoading(false);
       });
-      // return () => data.subscription.unsubscribe();
+
+      // Oturum değişikliklerini (Giriş/Çıkış) dinle
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          setUser(session?.user ?? null);
+          setLoading(false);
+      });
+
+      return () => subscription.unsubscribe();
   }, []);
 
   const handleSignOut = async () => {
-      await supabaseMock.auth.signOut();
+      await supabase.auth.signOut();
       setUser(null);
   };
 
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo: window.location.origin // Giriş yapınca ana sayfaya dön
+        }
+    });
+  };
+
   const useCredit = async (amount: number = 1): Promise<boolean> => {
+      // Şimdilik krediyi limitsiz yapalım, DB fonksiyonu hazır olana kadar
       if (!user) return false;
-      const { success, newBalance } = await supabaseMock.db.deductCredit(amount);
-      if (success) {
-          setUser({ ...user, credits: newBalance });
-          return true;
-      } else {
-          setShowSubscriptionModal(true);
-          return false;
-      }
+      return true; 
   };
 
   const handleAudit = async (url: string, manualStats?: any) => {
@@ -90,7 +100,7 @@ export default function App() {
           const resStr = await runEtsyAudit(url, manualStats);
           const res = JSON.parse(resStr);
           setAuditResult(res);
-          setActiveTab('audit'); // Force switch to view result
+          setActiveTab('audit');
       } catch (e) {
           console.error(e);
           alert("Audit failed. Please try again.");
@@ -112,22 +122,15 @@ export default function App() {
 
   const handleChatSendMessage = async (message: string, image: string | null) => {
         if (!selectedAuditItem) return;
-    
         const newHistory: ChatMessage[] = [...chatHistory, { sender: 'user', text: message, image: image || undefined }];
         setChatHistory(newHistory);
         setIsChatLoading(true);
-    
         try {
-            const aiResponse = await getChatResponse(
-                selectedAuditItem,
-                newHistory,
-                message,
-                image
-            );
+            const aiResponse = await getChatResponse(selectedAuditItem, newHistory, message, image);
             setChatHistory([...newHistory, { sender: 'ai', text: aiResponse }]);
         } catch (e) {
             console.error(e);
-            setChatHistory([...newHistory, { sender: 'ai', text: "Sorry, I encountered an error. Please try again." }]);
+            setChatHistory([...newHistory, { sender: 'ai', text: "Sorry, error." }]);
         } finally {
             setIsChatLoading(false);
         }
@@ -135,23 +138,36 @@ export default function App() {
 
   const isVisible = (id: string) => activeTab === id ? 'block' : 'hidden';
 
+  // --- 3. GÖRÜNÜM MANTIĞI ---
+  
+  // A) Yükleniyorsa Spinner Göster
+  if (loading) {
+    return (
+        <div className="flex h-screen items-center justify-center bg-[#0B0F19] text-white">
+             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+    );
+  }
+
+  // B) Kullanıcı Yoksa -> Landing Page Göster
   if (!user) {
       return (
         <LandingPage 
-            onGetStarted={(l) => setLang(l)} 
-            onLoginSuccess={(u) => setUser(u)} 
+            onGetStarted={() => setLang('en')} 
+            onLoginSuccess={handleGoogleLogin} // Google Login Fonksiyonunu Buraya Bağladık
         />
       );
   }
 
+  // C) Kullanıcı Varsa -> Uygulamayı Göster
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
         <Sidebar 
             activeTab={activeTab} 
             setActiveTab={(t) => setActiveTab(t)} 
             lang={lang} 
-            credits={user.credits}
-            userPlan={user.plan}
+            credits={user?.user_metadata?.credits || 5} // Supabase Metadata'dan oku
+            userPlan={user?.user_metadata?.plan || 'Free'}
             userEmail={user.email}
             onOpenSubscription={() => setShowSubscriptionModal(true)}
             isMobileOpen={isMobileOpen}
@@ -162,10 +178,10 @@ export default function App() {
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
             <Header 
-                credits={user.credits} 
+                credits={user?.user_metadata?.credits || 5} 
                 lang={lang} 
                 onOpenSubscription={() => setShowSubscriptionModal(true)}
-                userPlan={user.plan}
+                userPlan={user?.user_metadata?.plan || 'Free'}
             />
 
             <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
@@ -174,8 +190,8 @@ export default function App() {
                     {activeTab === 'dashboard' && (
                         <Dashboard 
                             lang={lang}
-                            userCredits={user.credits}
-                            userPlan={user.plan}
+                            userCredits={user?.user_metadata?.credits || 5}
+                            userPlan={user?.user_metadata?.plan || 'Free'}
                             onNewAudit={() => setActiveTab('audit')}
                             onNewListing={() => setActiveTab('optimizer')}
                             onNewMarket={() => setActiveTab('market')}
@@ -187,7 +203,6 @@ export default function App() {
                                     setAuditResult(record.data);
                                     setActiveTab('audit');
                                 }
-                                // Other types can be handled here if history structure supports it
                             }}
                             onOpenSubscription={() => setShowSubscriptionModal(true)}
                         />
@@ -209,7 +224,7 @@ export default function App() {
                                     result={auditResult} 
                                     onStartChat={startAuditChat} 
                                     shopUrl={auditResult.shopName || "Your Shop"}
-                                    userPlan={user.plan}
+                                    userPlan={user?.user_metadata?.plan || 'Free'}
                                     brandSettings={userSettings}
                                 />
                             </div>
@@ -250,8 +265,8 @@ export default function App() {
                     <div className={isVisible('reelGen')}>
                         <ReelGen 
                             lang={lang} 
-                            userCredits={user?.credits || 0}
-                            userPlan={user?.plan}
+                            userCredits={user?.user_metadata?.credits || 0}
+                            userPlan={user?.user_metadata?.plan}
                             onDeductCredit={useCredit}
                             onOpenSubscription={() => setShowSubscriptionModal(true)}
                         />
@@ -265,9 +280,7 @@ export default function App() {
             isOpen={showSubscriptionModal} 
             onClose={() => setShowSubscriptionModal(false)} 
             lang={lang}
-            onSuccess={() => {
-                supabaseMock.auth.getUser().then(u => setUser(u));
-            }}
+            onSuccess={() => {}}
         />
 
         <SettingsModal 
