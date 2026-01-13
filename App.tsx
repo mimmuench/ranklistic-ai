@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js'; // Gerçek bağlantı için
+import { createClient } from '@supabase/supabase-js';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -28,73 +28,87 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
 
 export default function App() {
-  const [user, setUser] = useState<any>(null); // Gerçek user objesi
+  const [user, setUser] = useState<any>(null);
   const [lang, setLang] = useState<'en' | 'tr'>('en');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [loading, setLoading] = useState(true); // Yüklenme durumu
+  const [loading, setLoading] = useState(true);
   
-  // Modals
+  // Modals & Data
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
-  
-  // Data State
   const [auditResult, setAuditResult] = useState<AuditReport | null>(null);
   const [optimizerData, setOptimizerData] = useState<OptimizerTransferData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Chat State
   const [selectedAuditItem, setSelectedAuditItem] = useState<AuditItem | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [userSettings, setUserSettings] = useState<UserSettings>({ language: 'en', notifications: true });
 
-  // Settings
-  const [userSettings, setUserSettings] = useState<UserSettings>({
-      language: 'en',
-      notifications: true
-  });
-
-  // --- 2. AUTH KONTROLÜ (GÜNCELLENDİ) ---
+  // --- 2. AUTH KONTROLÜ (ZAMAN AŞIMI KORUMALI) ---
   useEffect(() => {
-      // Sayfa ilk açıldığında oturum var mı bak
+      // Supabase'den yanıt beklerken kilitlenmeyi önlemek için 2 saniyelik sayaç
+      const timeoutTimer = setTimeout(() => {
+          setLoading(false); // 2 saniye dolunca yüklemeyi zorla bitir
+      }, 2000);
+
       supabase.auth.getSession().then(({ data: { session } }) => {
           setUser(session?.user ?? null);
           setLoading(false);
       });
 
-      // Oturum değişikliklerini (Giriş/Çıkış) dinle
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           setUser(session?.user ?? null);
           setLoading(false);
       });
 
-      return () => subscription.unsubscribe();
+      return () => {
+          subscription.unsubscribe();
+          clearTimeout(timeoutTimer);
+      };
   }, []);
+
+  // --- 3. E-POSTA İLE GİRİŞ FONKSİYONU (GOOGLE YOK) ---
+  const handleSimpleLogin = async () => {
+    const email = window.prompt("Lütfen E-mail adresinizi yazın:");
+    if (!email) return;
+
+    // Localhost dışında çalışırken basit bir email kontrolü
+    if (window.location.hostname !== 'localhost' && !email.includes('@')) {
+        alert("Geçersiz e-mail adresi.");
+        return;
+    }
+
+    alert("Giriş bağlantısı gönderiliyor... Lütfen bekleyin.");
+    
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email,
+      options: {
+        emailRedirectTo: window.location.origin 
+      }
+    });
+
+    if (error) {
+      alert("Hata: " + error.message);
+    } else {
+      alert(`Harika! ${email} adresine bir 'Magic Link' gönderdik. Mail kutunu aç ve o linke tıkla.`);
+    }
+  };
 
   const handleSignOut = async () => {
       await supabase.auth.signOut();
       setUser(null);
   };
 
-  const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.origin // Giriş yapınca ana sayfaya dön
-        }
-    });
-  };
-
+  // --- Yardımcı Fonksiyonlar ---
   const useCredit = async (amount: number = 1): Promise<boolean> => {
-      // Şimdilik krediyi limitsiz yapalım, DB fonksiyonu hazır olana kadar
       if (!user) return false;
       return true; 
   };
 
   const handleAudit = async (url: string, manualStats?: any) => {
       if (!await useCredit(1)) return;
-      
       setIsLoading(true);
       try {
           const resStr = await runEtsyAudit(url, manualStats);
@@ -138,35 +152,37 @@ export default function App() {
 
   const isVisible = (id: string) => activeTab === id ? 'block' : 'hidden';
 
-  // --- 3. GÖRÜNÜM MANTIĞI ---
+  // --- 4. GÖRÜNÜM MANTIĞI ---
   
-  // A) Yükleniyorsa Spinner Göster
   if (loading) {
     return (
         <div className="flex h-screen items-center justify-center bg-[#0B0F19] text-white">
-             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+             <div className="text-center">
+                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                 <p>Sistem Hazırlanıyor...</p>
+             </div>
         </div>
     );
   }
 
-  // B) Kullanıcı Yoksa -> Landing Page Göster
+  // KULLANICI YOKSA -> LANDING PAGE (Email girişi bağlı)
   if (!user) {
       return (
         <LandingPage 
             onGetStarted={() => setLang('en')} 
-            onLoginSuccess={handleGoogleLogin} // Google Login Fonksiyonunu Buraya Bağladık
+            onLoginSuccess={handleSimpleLogin} 
         />
       );
   }
 
-  // C) Kullanıcı Varsa -> Uygulamayı Göster
+  // KULLANICI VARSA -> PANEL
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
         <Sidebar 
             activeTab={activeTab} 
             setActiveTab={(t) => setActiveTab(t)} 
             lang={lang} 
-            credits={user?.user_metadata?.credits || 5} // Supabase Metadata'dan oku
+            credits={user?.user_metadata?.credits || 5} 
             userPlan={user?.user_metadata?.plan || 'Free'}
             userEmail={user.email}
             onOpenSubscription={() => setShowSubscriptionModal(true)}
@@ -234,74 +250,22 @@ export default function App() {
                     <div className={isVisible('optimizer')}>
                         <ListingOptimizer initialData={optimizerData} />
                     </div>
-
-                    <div className={isVisible('competitor')}>
-                        <CompetitorAnalyzer />
-                    </div>
-
-                    <div className={isVisible('market')}>
-                        <GlobalMarketAnalyzer lang={lang} />
-                    </div>
-
-                    <div className={isVisible('keywords')}>
-                        <KeywordResearch lang={lang} />
-                    </div>
-
-                    <div className={isVisible('launchpad')}>
-                        <ProductLaunchpad 
-                            auditResult={auditResult} 
-                            onUseForListing={handleOptimizerTransfer} 
-                        />
-                    </div>
-
-                    <div className={isVisible('trendRadar')}>
-                        <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
-                    </div>
-
-                    <div className={isVisible('newShop')}>
-                        <NewShopStarter lang={lang} />
-                    </div>
-
-                    <div className={isVisible('reelGen')}>
-                        <ReelGen 
-                            lang={lang} 
-                            userCredits={user?.user_metadata?.credits || 0}
-                            userPlan={user?.user_metadata?.plan}
-                            onDeductCredit={useCredit}
-                            onOpenSubscription={() => setShowSubscriptionModal(true)}
-                        />
-                    </div>
+                    <div className={isVisible('competitor')}><CompetitorAnalyzer /></div>
+                    <div className={isVisible('market')}><GlobalMarketAnalyzer lang={lang} /></div>
+                    <div className={isVisible('keywords')}><KeywordResearch lang={lang} /></div>
+                    <div className={isVisible('launchpad')}><ProductLaunchpad auditResult={auditResult} onUseForListing={handleOptimizerTransfer} /></div>
+                    <div className={isVisible('trendRadar')}><TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} /></div>
+                    <div className={isVisible('newShop')}><NewShopStarter lang={lang} /></div>
+                    <div className={isVisible('reelGen')}><ReelGen lang={lang} userCredits={user?.user_metadata?.credits || 0} userPlan={user?.user_metadata?.plan} onDeductCredit={useCredit} onOpenSubscription={() => setShowSubscriptionModal(true)} /></div>
 
                 </div>
             </main>
         </div>
 
-        <SubscriptionModal 
-            isOpen={showSubscriptionModal} 
-            onClose={() => setShowSubscriptionModal(false)} 
-            lang={lang}
-            onSuccess={() => {}}
-        />
-
-        <SettingsModal 
-            isOpen={showSettingsModal} 
-            onClose={() => setShowSettingsModal(false)} 
-            user={user}
-            settings={userSettings}
-            onSaveSettings={setUserSettings}
-            onOpenSubscription={() => { setShowSettingsModal(false); setShowSubscriptionModal(true); }}
-            lang={lang}
-        />
-
+        <SubscriptionModal isOpen={showSubscriptionModal} onClose={() => setShowSubscriptionModal(false)} lang={lang} onSuccess={() => {}} />
+        <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} settings={userSettings} onSaveSettings={setUserSettings} onOpenSubscription={() => { setShowSettingsModal(false); setShowSubscriptionModal(true); }} lang={lang} />
         {selectedAuditItem && (
-            <ChatModal 
-                isOpen={showChatModal}
-                onClose={() => setShowChatModal(false)}
-                auditItem={selectedAuditItem}
-                history={chatHistory}
-                onSendMessage={handleChatSendMessage}
-                isLoading={isChatLoading}
-            />
+            <ChatModal isOpen={showChatModal} onClose={() => setShowChatModal(false)} auditItem={selectedAuditItem} history={chatHistory} onSendMessage={handleChatSendMessage} isLoading={isChatLoading} />
         )}
     </div>
   );
