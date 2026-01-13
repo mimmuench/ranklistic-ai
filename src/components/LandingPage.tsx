@@ -608,6 +608,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
   
   // Login State
   const [email, setEmail] = useState('');
+  // --- BURAYI EKLE ---
+  const [password, setPassword] = useState('');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -642,36 +645,56 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  // --- BU YENİ FONKSİYONLARI YAPIŞTIR ---
+  
+  // 1. E-posta ve Şifre ile Giriş/Kayıt
+  const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!email) return;
+      if (!email || !password) {
+          setErrorMessage(lang === 'tr' ? "Lütfen email ve şifre girin." : "Please enter email and password.");
+          return;
+      }
       
       setLoginStatus('loading');
       setErrorMessage('');
 
       try {
-          // --- GERÇEK E-POSTA GÖNDERİMİ ---
-          const { error } = await supabase.auth.signInWithOtp({
-              email: email,
-              options: {
-                  // Giriş yapınca ana sayfaya dön
-                  emailRedirectTo: window.location.origin
-              }
-          });
-
-          if (error) {
-              setLoginStatus('error');
-              setErrorMessage(error.message);
+          if (authMode === 'signup') {
+              // KAYIT OLMA (Sign Up)
+              const { data, error } = await supabase.auth.signUp({
+                  email,
+                  password,
+              });
+              if (error) throw error;
+              alert(lang === 'tr' ? "Kayıt başarılı! Giriş yapabilirsiniz." : "Sign up successful! You can now login.");
+              setAuthMode('signin'); 
+              setLoginStatus('idle');
           } else {
-              // BAŞARILI! E-posta gönderildi ekranını aç
-              setLoginStatus('success');
-              // Not: onLoginSuccess'i çağırmıyoruz çünkü kullanıcı henüz linke tıklamadı.
-              // Linke tıklayıp dönünce App.tsx onu otomatik tanıyacak.
+              // GİRİŞ YAPMA (Sign In)
+              const { data, error } = await supabase.auth.signInWithPassword({
+                  email,
+                  password,
+              });
+              if (error) throw error;
+              if (data.user) {
+                  setLoginStatus('success');
+                  // App.tsx kullanıcının girdiğini 500ms sonra anlayacak
+                  setTimeout(() => onLoginSuccess(data.user), 500);
+              }
           }
-      } catch (e) {
+      } catch (e: any) {
           setLoginStatus('error');
-          setErrorMessage("Beklenmedik bir hata oluştu.");
+          setErrorMessage(e.message);
       }
+  };
+
+  // 2. Sosyal Medya ile Giriş
+  const handleSocialLogin = async (provider: 'google' | 'github') => {
+      const { error } = await supabase.auth.signInWithOAuth({
+          provider: provider,
+          options: { redirectTo: window.location.origin }
+      });
+      if (error) alert(error.message);
   };
 
   const runDemo = async (e: React.FormEvent) => {
@@ -1232,46 +1255,82 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
       <Footer lang={lang} onOpenPolicy={handleOpenPolicy} />
 
-      {/* Simplified Login Modal (No Manual Click Needed in Demo Mode) */}
+      {/* --- YENİ GİRİŞ PENCERESİ (EMAIL + ŞİFRE + GOOGLE) --- */}
       {showLoginModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-              <div className="bg-gray-800/90 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative transform scale-100 transition-transform">
-                  <button onClick={handleCloseLogin} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"><CloseIcon className="w-6 h-6" /></button>
+              <div className="bg-gray-800/90 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
+                  
+                  <button onClick={handleCloseLogin} className="absolute top-4 right-4 text-gray-400 hover:text-white"><CloseIcon className="w-6 h-6" /></button>
+                  
+                  {/* Başlık ve Sekmeler */}
                   <div className="text-center mb-6">
-                      <div className="inline-block p-3 rounded-full bg-orange-500/20 mb-4 animate-bounce"><SparklesIcon className="w-8 h-8 text-orange-500" /></div>
-                      <h2 className="text-2xl font-bold text-white">Welcome Back</h2>
-                      <p className="text-gray-400 text-sm">Enter your email to log in.</p>
+                      <h2 className="text-2xl font-bold text-white mb-4">
+                          {authMode === 'signin' ? (lang === 'tr' ? 'Tekrar Hoşgeldin' : 'Welcome Back') : (lang === 'tr' ? 'Hesap Oluştur' : 'Create Account')}
+                      </h2>
+                      <div className="flex p-1 bg-gray-900 rounded-lg">
+                          <button 
+                              onClick={() => setAuthMode('signin')}
+                              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${authMode === 'signin' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                          >
+                              {lang === 'tr' ? 'Giriş Yap' : 'Login'}
+                          </button>
+                          <button 
+                              onClick={() => setAuthMode('signup')}
+                              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${authMode === 'signup' ? 'bg-gray-700 text-white shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                          >
+                              {lang === 'tr' ? 'Kaydol' : 'Sign Up'}
+                          </button>
+                      </div>
                   </div>
                   
-                  {loginStatus === 'success' ? (
-                      <div className="text-center animate-fade-in">
-                          <div className="bg-green-900/30 p-4 rounded-lg border border-green-500/30 mb-4">
-                              <CheckCircleIcon className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                              <h3 className="text-lg font-bold text-white">{isDemoMode ? 'Access Granted!' : 'Magic Link Sent!'}</h3>
-                              <p className="text-sm text-gray-300">
-                                  {isDemoMode ? 'Entering Dashboard...' : 'Check your email.'}
-                              </p>
-                          </div>
+                  {/* Form */}
+                  <form onSubmit={handleAuthSubmit} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                          <input 
+                              type="email" 
+                              value={email} 
+                              onChange={(e) => setEmail(e.target.value)} 
+                              className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-orange-500 outline-none" 
+                              placeholder="you@example.com"
+                              required 
+                          />
                       </div>
-                  ) : (
-                      <form onSubmit={handleLoginSubmit} className="space-y-4">
-                          <div>
-                              <label className="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
-                              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all focus:bg-gray-800" required />
-                          </div>
-                          {loginStatus === 'error' && (<div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-500/20">{errorMessage}</div>)}
-                          <button type="submit" disabled={loginStatus === 'loading'} className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-600 rounded-lg font-bold text-white hover:shadow-lg hover:shadow-orange-500/30 transition-all transform active:scale-95 disabled:opacity-50">
-                              {loginStatus === 'loading' ? 'Checking Access...' : 'Continue'}
+                      <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1">{lang === 'tr' ? 'Şifre' : 'Password'}</label>
+                          <input 
+                              type="password" 
+                              value={password} 
+                              onChange={(e) => setPassword(e.target.value)} 
+                              className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-orange-500 outline-none" 
+                              placeholder="••••••••"
+                              required 
+                              minLength={6}
+                          />
+                      </div>
+
+                      {loginStatus === 'error' && (<div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-500/20">{errorMessage}</div>)}
+                      
+                      <button type="submit" disabled={loginStatus === 'loading'} className="w-full py-3 bg-gradient-to-r from-orange-500 to-pink-600 rounded-lg font-bold text-white hover:shadow-lg transition-all disabled:opacity-50">
+                          {loginStatus === 'loading' ? '...' : (authMode === 'signin' ? (lang === 'tr' ? 'Giriş Yap' : 'Login') : (lang === 'tr' ? 'Kaydol' : 'Sign Up'))}
+                      </button>
+                  </form>
+
+                  {/* Sosyal Giriş */}
+                  <div className="mt-6">
+                      <div className="relative mb-4">
+                          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-700"></div></div>
+                          <div className="relative flex justify-center text-sm"><span className="px-2 bg-gray-800 text-gray-400">{lang === 'tr' ? 'veya' : 'or continue with'}</span></div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                          <button onClick={() => handleSocialLogin('google')} className="flex items-center justify-center py-2.5 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors bg-white text-black font-bold">
+                              <span className="mr-2">G</span> Google
                           </button>
-                      </form>
-                  )}
-                  <p className="text-xs text-center text-gray-500 mt-4">By continuing, you agree to our Terms of Service.</p>
-                  <div className="mt-6 border-t border-gray-700 pt-4 flex justify-between items-center"><span className="text-xs text-gray-500">v2.5.0</span></div>
+                          <button onClick={() => handleSocialLogin('github')} className="flex items-center justify-center py-2.5 border border-gray-600 rounded-lg hover:bg-gray-700 transition-colors bg-[#24292e] text-white font-bold">
+                              GitHub
+                          </button>
+                      </div>
+                  </div>
               </div>
           </div>
       )}
-
-      <LegalModal isOpen={legalModalOpen} type={legalType} onClose={() => setLegalModalOpen(false)} lang={lang} />
-    </div>
-  );
-};
