@@ -1255,7 +1255,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
       <Footer lang={lang} onOpenPolicy={handleOpenPolicy} />
 
-      {/* --- YENİ GİRİŞ PENCERESİ (EMAIL + ŞİFRE + GOOGLE) --- */}
+      {/* --- YENİ GİRİŞ PENCERESİ (DÜZELTİLMİŞ & KAPATILMIŞ) --- */}
       {showLoginModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
               <div className="bg-gray-800/90 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
@@ -1334,3 +1334,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
               </div>
           </div>
       )}
+
+      <LegalModal isOpen={legalModalOpen} type={legalType} onClose={() => setLegalModalOpen(false)} lang={lang} />
+    </div>
+  );
+};
