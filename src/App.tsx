@@ -91,48 +91,71 @@ export default function App() {
   if (loading) return <div className="h-screen bg-[#0B0F19] flex items-center justify-center text-white">Loading Ranklistic...</div>;
 
   return (
-  <BrowserRouter>
-    <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
-      
-      {/* SADECE user varsa Sidebar'ı göster */}
-      {user && (
-        <Sidebar 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          lang={lang} 
-          credits={userProfile?.credits || 0} 
-          // ... diğer sidebar propsları
-        />
-      )}
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* SADECE user varsa Header'ı göster (LandingPage'de çift görünmesin diye) */}
+    <BrowserRouter>
+      <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
         {user && (
-          <Header 
-            credits={userProfile?.credits} 
+          <Sidebar 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab} 
             lang={lang} 
-            onOpenSubscription={() => setShowSubscriptionModal(true)}
+            credits={userProfile?.credits || 0} 
             userPlan={userProfile?.plan || 'free'}
+            userEmail={user.email}
+            onOpenSubscription={() => setShowSubscriptionModal(true)}
+            onSignOut={() => supabase.auth.signOut()}
+            onOpenSettings={() => {}}
+            isMobileOpen={false}
+            setIsMobileOpen={() => {}}
           />
         )}
 
-        <main className="flex-1 overflow-y-auto">
-          {!user ? (
-            /* Giriş yapmamış kullanıcı sadece LandingPage görür */
-            <LandingPage 
-              onGetStarted={() => setShowSignupModal(true)}
-              onLogin={() => setShowLoginModal(true)} // Login butonu için
-              onGoogleLogin={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {user && (
+            <Header 
+              credits={userProfile?.credits} 
+              lang={lang} 
+              onOpenSubscription={() => setShowSubscriptionModal(true)}
+              userPlan={userProfile?.plan || 'free'}
             />
-          ) : (
-            /* Giriş yapmış kullanıcı paneli görür */
-            <div className="p-4 md:p-8 max-w-7xl mx-auto">
-               {activeTab === 'dashboard' && <Dashboard ... />}
-               {/* ... diğer tablar */}
-            </div>
           )}
-        </main>
+
+          <main className="flex-1 overflow-y-auto">
+            {!user ? (
+              <LandingPage 
+                onGetStarted={() => setShowSubscriptionModal(true)}
+                onLoginSuccess={(u) => { setUser(u); }}
+              />
+            ) : (
+              <div className="p-4 md:p-8 max-w-7xl mx-auto pt-20">
+                {activeTab === 'dashboard' && (
+                  <Dashboard 
+                    lang={lang} 
+                    userCredits={userProfile?.credits} 
+                    userPlan={userProfile?.plan} 
+                    onNewAudit={() => setActiveTab('audit')} 
+                    onNewListing={() => setActiveTab('optimizer')} 
+                    onNewMarket={() => setActiveTab('market')} 
+                    onGoToLaunchpad={() => setActiveTab('launchpad')} 
+                    onGoToReelGen={() => setActiveTab('reelGen')} 
+                    onGoToTrendRadar={() => setActiveTab('trendRadar')} 
+                    onLoadReport={() => {}} 
+                    onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                  />
+                )}
+                {activeTab === 'audit' && <AuditForm lang={lang} onAuditComplete={(r) => { setAuditResult(r); setActiveTab('dashboard'); }} useCredit={useCredit} />}
+                {activeTab === 'optimizer' && <ListingOptimizer lang={lang} />}
+                {activeTab === 'market' && <GlobalMarketAnalyzer lang={lang} />}
+                {activeTab === 'launchpad' && <ProductLaunchpad lang={lang} />}
+                {activeTab === 'newShop' && <NewShopStarter lang={lang} />}
+                {activeTab === 'keywords' && <KeywordResearch lang={lang} />}
+                {activeTab === 'trendRadar' && <TrendRadar lang={lang} />}
+                {activeTab === 'reelGen' && <ReelGen lang={lang} />}
+              </div>
+            )}
+          </main>
+        </div>
+        <SubscriptionModal isOpen={showSubscriptionModal} onClose={() => setShowSubscriptionModal(false)} lang={lang} onSuccess={() => {}} />
       </div>
-    </div>
-  </BrowserRouter>
-);
+    </BrowserRouter>
+  );
+}
