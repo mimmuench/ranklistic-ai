@@ -37,14 +37,13 @@ const getEnv = (key: string) => {
 };
 
 // --- MANUAL KEYS FOR LOCAL DEV (OPTIONAL) ---
-// Note: It is best practice to use .env files. However, you can paste keys here for quick local testing.
 const MANUAL_SUPABASE_URL = "";
 const MANUAL_SUPABASE_KEY = "";
 
 const SUPABASE_URL = getEnv('VITE_SUPABASE_URL') || MANUAL_SUPABASE_URL;
 const SUPABASE_ANON_KEY = getEnv('VITE_SUPABASE_ANON_KEY') || MANUAL_SUPABASE_KEY;
 
-// Check if keys exist
+// Check if keys exist and are valid URL
 const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.startsWith('http');
 
 export const isDemoMode = !isConfigured;
@@ -78,8 +77,8 @@ const setMockUser = (user: UserProfile | null) => {
 // --- REAL SERVICE (WITH FALLBACKS) ---
 export const supabaseMock = {
     auth: {
+        // Magic Link Sign In
         signIn: async (email: string): Promise<{ user: UserProfile | null, error: any }> => {
-            // REAL MODE (Sadece Vercel/Localhost'ta .env varsa çalışır)
             if (supabase) {
                 try {
                     const { error } = await supabase.auth.signInWithOtp({ 
@@ -91,19 +90,58 @@ export const supabaseMock = {
                     return { user: null, error: err };
                 }
             }
-
-            // MOCK MODE (ŞU ANKİ DURUM İÇİN ZORUNLU GİRİŞ)
+            // Mock
             const mockUser: UserProfile = {
                 id: 'admin-user-123',
-                email: email || 'agency@ranklistic.com', // Default professional email
-                plan: 'agency', // <--- FORCE AGENCY PLAN
+                email: email || 'agency@ranklistic.com',
+                plan: 'agency', 
                 credits: 1000,
                 is_subscribed: true
             };
             setMockUser(mockUser);
-            
-            // Sayfa yenileme yok, direkt state güncellenecek
             return { user: mockUser, error: null };
+        },
+
+        // Password Sign In (Matches Supabase API Structure)
+        signInWithPassword: async ({ email, password }: any) => {
+            if (supabase) {
+                return await supabase.auth.signInWithPassword({ email, password });
+            }
+            // Mock Success
+            const mockUser: UserProfile = {
+                id: 'admin-user-123',
+                email: email,
+                plan: 'agency', 
+                credits: 1000,
+                is_subscribed: true
+            };
+            setMockUser(mockUser);
+            return { data: { user: mockUser }, error: null };
+        },
+
+        // Sign Up (Matches Supabase API Structure)
+        signUp: async ({ email, password }: any) => {
+            if (supabase) {
+                return await supabase.auth.signUp({ email, password });
+            }
+            // Mock Success
+            return { data: { user: { id: 'new-user', email } }, error: null };
+        },
+
+        // OAuth
+        signInWithOAuth: async (options: any) => {
+            if (supabase) {
+                return await supabase.auth.signInWithOAuth(options);
+            }
+            return { error: { message: "OAuth not available in demo mode" } };
+        },
+
+        // Reset Password
+        resetPasswordForEmail: async (email: string, options: any) => {
+            if (supabase) {
+                return await supabase.auth.resetPasswordForEmail(email, options);
+            }
+            return { data: {}, error: null };
         },
 
         signOut: async () => {
@@ -111,7 +149,6 @@ export const supabaseMock = {
                 const { error } = await supabase.auth.signOut();
                 return { error };
             }
-            // MOCK MODE
             setMockUser(null);
             return { error: null };
         },
@@ -129,7 +166,6 @@ export const supabaseMock = {
                         .single();
                     
                     if (error) {
-                        // Fallback if profile missing
                         return { id: user.id, email: user.email!, plan: 'free', credits: 0 };
                     }
                     return profile as UserProfile;
@@ -137,7 +173,6 @@ export const supabaseMock = {
                     return null;
                 }
             }
-            // MOCK MODE
             return getMockUser();
         },
 
@@ -145,7 +180,6 @@ export const supabaseMock = {
             if (supabase) {
                 return supabase.auth.onAuthStateChange(callback);
             }
-            // MOCK MODE: No-op mostly, rely on local storage check
             return { data: { subscription: { unsubscribe: () => {} } } };
         }
     },
@@ -166,7 +200,6 @@ export const supabaseMock = {
                 return { success: true, newBalance };
             }
 
-            // MOCK MODE
             const user = getMockUser();
             if (!user || user.credits < amount) return { success: false, newBalance: user?.credits || 0 };
             
@@ -185,7 +218,6 @@ export const supabaseMock = {
                 return data as UserProfile;
             }
 
-            // MOCK MODE
             const user = getMockUser();
             if (!user) throw new Error("No user");
             user.plan = plan;
@@ -206,7 +238,6 @@ export const supabaseMock = {
                 return data as UserProfile;
             }
 
-            // MOCK MODE
             const user = getMockUser();
             if (!user) throw new Error("No user");
             user.credits += amount;
@@ -222,7 +253,6 @@ export const supabaseMock = {
                 return !error;
             }
 
-            // MOCK MODE
             const reports = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || '[]');
             reports.push({ ...record, id: Math.random().toString(36).substr(2, 9), created_at: new Date().toISOString() });
             localStorage.setItem(MOCK_DB_KEY, JSON.stringify(reports));
@@ -236,8 +266,6 @@ export const supabaseMock = {
                 const { data } = await supabase.from('reports').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
                 return data ? data.map((row: any) => ({ ...row, date: row.created_at })) : [];
             }
-
-            // MOCK MODE
             return JSON.parse(localStorage.getItem(MOCK_DB_KEY) || '[]');
         },
 
@@ -246,8 +274,6 @@ export const supabaseMock = {
                 const { error } = await supabase.from('reports').delete().eq('id', reportId);
                 return !error;
             }
-
-            // MOCK MODE
             const reports = JSON.parse(localStorage.getItem(MOCK_DB_KEY) || '[]');
             const filtered = reports.filter((r: any) => r.id !== reportId);
             localStorage.setItem(MOCK_DB_KEY, JSON.stringify(filtered));

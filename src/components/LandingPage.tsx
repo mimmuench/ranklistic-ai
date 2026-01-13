@@ -4,16 +4,11 @@ import { SparklesIcon, SearchIcon, RocketIcon, CheckCircleIcon, PrinterIcon, Sta
 import { Footer } from './Footer';
 import { LegalModal } from './LegalModals';
 import { AnnouncementBar } from './AnnouncementBar';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseMock, UserProfile } from '../services/supabaseService';
 import { generateDemoTitle } from '../services/geminiService';
 
-// GERÇEK BAĞLANTIYI BURADA KURUYORUZ
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
-
-// Demo modunu kapattık, gerçek moddayız
+// Demo modunu kapattık, gerçek moddayız (Services üzerinden kontrol edilir)
 const isDemoMode = false;
-// Tip tanımlaması (Hata vermemesi için)
-type UserProfile = any;
 
 interface LandingPageProps {
   onGetStarted: (lang: 'en' | 'tr') => void;
@@ -608,7 +603,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
   
   // Login State
   const [email, setEmail] = useState('');
-  // --- BURAYI EKLE ---
   const [password, setPassword] = useState('');
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [loginStatus, setLoginStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -629,6 +623,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
   const t = translations[lang];
 
+  // --- AUTOMATIC LEGAL MODAL FROM URL (For Stripe Verification) ---
+  useEffect(() => {
+      const params = new URLSearchParams(window.location.search);
+      const legalParam = params.get('legal');
+      if (legalParam === 'privacy') {
+          setLegalType('privacy');
+          setLegalModalOpen(true);
+      } else if (legalParam === 'terms') {
+          setLegalType('terms');
+          setLegalModalOpen(true);
+      } else if (legalParam === 'refund') {
+          setLegalType('refund');
+          setLegalModalOpen(true);
+      }
+  }, []);
+
   const handleOpenLogin = () => setShowLoginModal(true);
   const handleCloseLogin = () => setShowLoginModal(false);
 
@@ -645,9 +655,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       }
   };
 
-  // --- BU YENİ FONKSİYONLARI YAPIŞTIR ---
-  
-  // 1. E-posta ve Şifre ile Giriş/Kayıt
+  // --- AUTH FUNCTIONS USING SAFE MOCK SERVICE ---
   const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!email || !password) {
@@ -661,7 +669,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       try {
           if (authMode === 'signup') {
               // KAYIT OLMA (Sign Up)
-              const { data, error } = await supabase.auth.signUp({
+              // Use supabaseMock instead of direct supabase to prevent crashes
+              const { data, error } = await supabaseMock.auth.signUp({
                   email,
                   password,
               });
@@ -671,40 +680,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
               setLoginStatus('idle');
           } else {
               // GİRİŞ YAPMA (Sign In)
-              const { data, error } = await supabase.auth.signInWithPassword({
+              // Use supabaseMock
+              const { error } = await supabaseMock.auth.signInWithPassword({
                   email,
                   password,
               });
               if (error) throw error;
-              if (data.user) {
+
+              // Fetch complete user profile (with credits/plan)
+              const userProfile = await supabaseMock.auth.getUser();
+              
+              if (userProfile) {
                   setLoginStatus('success');
                   // App.tsx kullanıcının girdiğini 500ms sonra anlayacak
-                  setTimeout(() => onLoginSuccess(data.user), 500);
+                  setTimeout(() => onLoginSuccess(userProfile), 500);
               }
           }
       } catch (e: any) {
           setLoginStatus('error');
-          setErrorMessage(e.message);
+          setErrorMessage(e.message || "Authentication failed");
       }
   };
 
   // 2. Sosyal Medya ile Giriş
   const handleSocialLogin = async (provider: 'google' | 'github') => {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabaseMock.auth.signInWithOAuth({
           provider: provider,
           options: { redirectTo: window.location.origin }
       });
       if (error) alert(error.message);
   };
 
-  // --- BURAYI EKLE (handleAuthSubmit altına) ---
   const handleForgotPassword = async () => {
     if (!email) {
         alert("Please enter your email address first.");
         return;
     }
     try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabaseMock.auth.resetPasswordForEmail(email, {
             redirectTo: window.location.origin,
         });
         if (error) throw error;
