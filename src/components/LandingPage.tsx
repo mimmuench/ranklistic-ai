@@ -697,6 +697,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       if (error) alert(error.message);
   };
 
+  // --- BURAYI EKLE (handleAuthSubmit altına) ---
+  const handleForgotPassword = async () => {
+    if (!email) {
+        alert("Please enter your email address first.");
+        return;
+    }
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        alert("Password reset link sent! Check your email.");
+    } catch (e: any) {
+        alert("Error: " + e.message);
+    }
+  };
+
+
   const runDemo = async (e: React.FormEvent) => {
       e.preventDefault();
       if(!demoInput) return;
@@ -1308,6 +1326,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                               minLength={6}
                           />
                       </div>
+
+                      {/* --- ADDED: Forgot Password Link --- */}
+                      <div className="flex justify-end mt-1">
+                          <button 
+                              type="button"
+                              onClick={handleForgotPassword}
+                              className="text-xs text-gray-400 hover:text-white transition-colors hover:underline"
+                          >
+                              Forgot Password?
+                          </button>
+                      </div>
+                      {/* ----------------------------------- */}
 
                       {loginStatus === 'error' && (<div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-500/20">{errorMessage}</div>)}
                       
