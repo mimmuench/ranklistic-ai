@@ -865,9 +865,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
         <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
       </div>
 
-      {/* NAVIGATION */}
+      {/* NAVIGATION - BU KISMI DİKKATLİCE DEĞİŞTİR */}
       <nav className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl py-6 flex justify-between items-center sticky top-0 z-40 bg-[#0B0F19]/90 backdrop-blur-md border-b border-white/5 shadow-sm">
-        <div className="flex items-center space-x-2 group cursor-pointer" onClick={(e) => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+        <div className="flex items-center space-x-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
           <div className="relative">
              <div className="absolute inset-0 bg-orange-500 blur-sm opacity-50 group-hover:opacity-100 transition-opacity rounded-full"></div>
              <TrendingUpIcon className="w-8 h-8 text-orange-500 relative z-10" />
@@ -876,45 +876,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
         </div>
         
         <div className="hidden md:flex space-x-8 text-sm font-medium text-gray-300 items-center">
-          <a href="#demo" onClick={(e) => scrollToSection(e, 'demo')} className="hover:text-white transition-colors hover:shadow-[0_4px_14px_0_rgba(255,255,255,0.3)] px-3 py-1 rounded-full text-orange-400 cursor-pointer">{t.nav.tryDemo}</a>
-          <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors hover:shadow-[0_4px_14px_0_rgba(255,255,255,0.3)] px-3 py-1 rounded-full cursor-pointer">{t.nav.features}</a>
-          <a href="#comparison" onClick={(e) => scrollToSection(e, 'comparison')} className="hover:text-white transition-colors hover:shadow-[0_4px_14px_0_rgba(255,255,255,0.3)] px-3 py-1 rounded-full cursor-pointer">{t.nav.compare}</a>
-          <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="hover:text-white transition-colors hover:shadow-[0_4px_14px_0_rgba(255,255,255,0.3)] px-3 py-1 rounded-full cursor-pointer">{t.nav.pricing}</a>
+          <a href="#demo" className="hover:text-white transition-colors">{t.nav.tryDemo}</a>
+          <a href="#features" className="hover:text-white transition-colors">{t.nav.features}</a>
+          <a href="#comparison" className="hover:text-white transition-colors">{t.nav.compare}</a>
+          <a href="#pricing" className="hover:text-white transition-colors">{t.nav.pricing}</a>
         </div>
         
         <div className="flex items-center space-x-4">
-            {/* Dil Seçici (Gizli kalabilir veya aktif edebilirsin) */}
-             <div className="hidden md:flex bg-gray-800 rounded-full p-1 border border-gray-700">
-                <button 
-                  onClick={() => setLang('en')} 
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${lang === 'en' ? 'bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}
-                >
-                  EN
-                </button>
-                <button 
-                  onClick={() => setLang('tr')} 
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${lang === 'tr' ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-500 hover:text-white'}`}
-                >
-                  TR
-                </button>
-             </div>
-
-            {/* Login Butonu (Yazı şeklinde, daha zarif) */}
-            <button 
-              onClick={handleOpenLogin}
-              className="text-gray-300 hover:text-white font-bold text-sm px-2 transition-colors"
-            >
+            <button onClick={handleOpenLogin} className="text-gray-300 hover:text-white font-bold text-sm px-2">
               {t.nav.login}
             </button>
-
-            {/* Get Started Butonu (Turuncu-Pembe Gradyan, dikkat çekici) */}
-            <button 
-              onClick={handleOpenLogin}
-              className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-6 py-2.5 rounded-full font-bold hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all transform hover:scale-105 text-sm"
-            >
+            <button onClick={handleOpenLogin} className="bg-gradient-to-r from-orange-500 to-pink-600 text-white px-6 py-2.5 rounded-full font-bold hover:shadow-[0_0_20px_rgba(249,115,22,0.4)] transition-all transform hover:scale-105 text-sm">
               GET STARTED
             </button>
         </div>
+      </nav> {/* NAV BURADA KAPANIYOR - KRİTİK NOKTA! */}
 
       {/* HERO SECTION */}
       <header className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl py-16 md:py-24 relative z-10">
@@ -1295,14 +1271,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
       <Footer lang={lang} onOpenPolicy={handleOpenPolicy} />
 
-      {/* --- YENİ GİRİŞ PENCERESİ (DÜZELTİLMİŞ & KAPATILMIŞ) --- */}
+      {/* --- YENİ GİRİŞ PENCERESİ --- */}
       {showLoginModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
               <div className="bg-gray-800/90 border border-gray-700 rounded-2xl p-8 max-w-md w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] relative">
                   
                   <button onClick={handleCloseLogin} className="absolute top-4 right-4 text-gray-400 hover:text-white"><CloseIcon className="w-6 h-6" /></button>
                   
-                  {/* Başlık ve Sekmeler */}
                   <div className="text-center mb-6">
                       <h2 className="text-2xl font-bold text-white mb-4">
                           {authMode === 'signin' ? (lang === 'tr' ? 'Tekrar Hoşgeldin' : 'Welcome Back') : (lang === 'tr' ? 'Hesap Oluştur' : 'Create Account')}
@@ -1323,7 +1298,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                       </div>
                   </div>
                   
-                  {/* Form */}
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
                       <div>
                           <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
@@ -1349,7 +1323,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                           />
                       </div>
 
-                      {/* --- ADDED: Forgot Password Link --- */}
                       <div className="flex justify-end mt-1">
                           <button 
                               type="button"
@@ -1359,7 +1332,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                               Forgot Password?
                           </button>
                       </div>
-                      {/* ----------------------------------- */}
 
                       {loginStatus === 'error' && (<div className="text-red-400 text-sm bg-red-900/20 p-2 rounded border border-red-500/20">{errorMessage}</div>)}
                       
@@ -1368,7 +1340,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
                       </button>
                   </form>
 
-                  {/* Sosyal Giriş */}
                   <div className="mt-6">
                       <div className="relative mb-4">
                           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-700"></div></div>
@@ -1388,6 +1359,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       )}
 
       <LegalModal isOpen={legalModalOpen} type={legalType} onClose={() => setLegalModalOpen(false)} lang={lang} />
-    </div>
-  );
-};
+    </div> // div kapatıldı
+  ); // return kapatıldı
+}; // bileşen kapatıldı
