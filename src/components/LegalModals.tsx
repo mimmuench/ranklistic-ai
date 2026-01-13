@@ -14,46 +14,51 @@ const legalContent = {
         privacy: {
             title: "Privacy Policy",
             text: `
-                **1. Data Collection**
-                We collect minimal data necessary to operate the service. This includes email addresses for account management and Etsy shop URLs for analysis. We do NOT store your credit card information; payments are processed by secure third-party providers.
+                **1. Data Collection & Usage**
+                Ranklistic AI ("Service"), operated by **Mundo Global LLC**, collects minimal data necessary for account creation and service delivery. This includes your email address and Etsy shop URL. We do not store credit card details; payments are processed securely via Stripe.
 
-                **2. Shop Data Usage**
-                When you input a shop URL, we access publicly available data (listings, tags, titles). We do not access your private Etsy account backend (we do not ask for your password or API keys).
+                **2. Third-Party Sharing**
+                We do not sell your personal data. We share necessary data with trusted third-party providers solely for the purpose of operating the service (e.g., Stripe for payments, Supabase for authentication, Google Gemini for AI processing).
 
-                **3. AI Analysis**
-                Data submitted to our tools (images, titles) is processed by Google Gemini AI. We do not use your data to train our own models in a way that exposes your intellectual property.
+                **3. Data Security**
+                We implement industry-standard security measures to protect your information. However, no method of transmission over the Internet is 100% secure.
 
-                **4. Cookies**
-                We use cookies to maintain your login session and preferences.
+                **4. Contact Us**
+                For privacy concerns, please contact us at: **support@ranklistic.com**
             `
         },
         terms: {
             title: "Terms of Service",
             text: `
-                **1. Introduction**
-                Ranklistic AI is a service operated by **Mundo Global LLC**. By using Ranklistic, you agree to these terms. If you represent an agency, you agree that you have the authority to bind that entity.
+                **1. Acceptance of Terms**
+                By accessing Ranklistic AI, you agree to these Terms. The service is provided by **Mundo Global LLC**.
 
-                **2. Fair Use**
-                You may not reverse engineer, scrape, or excessively burden our API. Accounts found abusing the credit system will be suspended without refund.
+                **2. Description of Service & Delivery Policy**
+                Ranklistic AI is a Software-as-a-Service (SaaS) platform. Upon successful payment, your account is upgraded immediately, and you gain instant access to digital credits and tools. No physical goods are shipped.
 
-                **3. Disclaimer**
-                Ranklistic provides suggestions based on AI analysis. We do not guarantee specific sales results or Etsy rankings. E-commerce success depends on many factors beyond SEO.
+                **3. User Obligations**
+                You agree not to reverse engineer, scrape, or abuse the API. Accounts found in violation will be terminated.
 
-                **4. Subscriptions**
-                You can cancel your subscription at any time. Credits reset monthly and do not rollover.
+                **4. Governing Law**
+                These terms are governed by the laws of the jurisdiction in which Mundo Global LLC is registered.
             `
         },
         refund: {
-            title: "Refund Policy",
+            title: "Refund & Cancellation Policy",
             text: `
-                **1. 7-Day Money Back Guarantee**
-                If you are not satisfied with Ranklistic, contact us within 7 days of your first purchase for a full refund, provided you have not used more than 20% of your credits.
+                **1. Cancellation Policy**
+                You may cancel your subscription at any time via your account dashboard or by emailing **support@ranklistic.com**.
+                - If you cancel, your subscription will remain active until the end of the current billing period.
+                - You will not be charged for the next billing cycle.
 
-                **2. Cancellation**
-                You may cancel your recurring subscription at any time. You will retain access until the end of your billing cycle.
+                **2. Refund Policy (7-Day Guarantee)**
+                We offer a 7-day money-back guarantee for first-time purchases under the following conditions:
+                - You request the refund within 7 days of the initial transaction.
+                - You have used less than 20% of your allocated AI credits.
+                To request a refund, email **support@ranklistic.com** with your account email.
 
-                **3. Abuse**
-                Refunds are not granted in cases of Terms of Service violations (e.g., account sharing, scraping).
+                **3. Dispute Resolution**
+                In the event of a billing dispute, please contact our support team first to resolve the issue amicably before initiating a chargeback.
             `
         }
     },
@@ -62,36 +67,38 @@ const legalContent = {
             title: "Gizlilik Politikası",
             text: `
                 **1. Veri Toplama**
-                Hizmeti yürütmek için gereken asgari verileri topluyoruz. Buna hesap yönetimi için e-posta adresleri ve analiz için Etsy mağaza URL'leri dahildir. Kredi kartı bilgilerinizi SAKLAMIYORUZ; ödemeler güvenli üçüncü taraf sağlayıcılar tarafından işlenir.
+                **Mundo Global LLC** tarafından işletilen Ranklistic AI, hizmeti sağlamak için gerekli asgari verileri (E-posta, Mağaza URL'si) toplar. Kredi kartı bilgileriniz sunucularımızda saklanmaz; ödemeler Stripe aracılığıyla güvenle işlenir.
 
-                **2. Mağaza Verisi Kullanımı**
-                Bir mağaza URL'si girdiğinizde, herkese açık verileri (ilanlar, etiketler, başlıklar) kullanırız. Özel Etsy hesabınıza erişmeyiz (şifrenizi veya API anahtarlarınızı istemeyiz).
+                **2. Üçüncü Taraflar**
+                Kişisel verilerinizi satmayız. Veriler sadece hizmetin işlemesi için gerekli altyapı sağlayıcıları (Stripe, Google, Supabase) ile paylaşılır.
 
-                **3. Yapay Zeka Analizi**
-                Araçlarımıza gönderilen veriler (görseller, başlıklar) Google Gemini AI tarafından işlenir. Verilerinizi fikri mülkiyetinizi ifşa edecek şekilde modellerimizi eğitmek için kullanmayız.
+                **3. İletişim**
+                Gizlilik konuları için iletişim: **support@ranklistic.com**
             `
         },
         terms: {
             title: "Kullanım Şartları",
             text: `
-                **1. Giriş**
-                Ranklistic AI, **Mundo Global LLC** tarafından işletilen bir hizmettir. Ranklistic'i kullanarak bu şartları kabul etmiş olursunuz.
+                **1. Kabul**
+                Hizmeti kullanarak bu şartları kabul etmiş sayılırsınız. Hizmet sağlayıcı: **Mundo Global LLC**.
 
-                **2. Adil Kullanım**
-                API'mizi tersine mühendislik yapamaz, kazıyamaz veya aşırı yükleyemezsiniz. Kredi sistemini kötüye kullandığı tespit edilen hesaplar iade yapılmaksızın askıya alınacaktır.
+                **2. Hizmet Tanımı ve Teslimat Politikası**
+                Ranklistic AI dijital bir SaaS hizmetidir. Ödeme başarılı olduğunda hesabınız anında yükseltilir ve dijital araçlara erişiminiz derhal başlar. Fiziksel kargo gönderimi yoktur.
 
-                **3. Sorumluluk Reddi**
-                Ranklistic, yapay zeka analizine dayalı öneriler sunar. Belirli satış sonuçlarını veya Etsy sıralamalarını garanti etmeyiz. E-ticaret başarısı SEO dışındaki birçok faktöre bağlıdır.
+                **3. Kullanıcı Yükümlülükleri**
+                Sistemi manipüle etmek, izinsiz veri çekmek (scraping) veya kötüye kullanmak yasaktır.
             `
         },
         refund: {
-            title: "İade Politikası",
+            title: "İptal ve İade Politikası",
             text: `
-                **1. 7 Gün Para İade Garantisi**
-                Ranklistic'ten memnun kalmazsanız, kredilerinizin %20'sinden fazlasını kullanmamış olmanız kaydıyla, tam iade için ilk satın alma işleminizden sonraki 7 gün içinde bizimle iletişime geçin.
+                **1. İptal Politikası**
+                Aboneliğinizi dilediğiniz zaman panelinizden veya **support@ranklistic.com** adresine yazarak iptal edebilirsiniz.
+                - İptal durumunda, mevcut fatura döneminin sonuna kadar erişiminiz devam eder.
+                - Bir sonraki dönem için ücret alınmaz.
 
-                **2. İptal**
-                Aboneliğinizi istediğiniz zaman iptal edebilirsiniz. Fatura döngünüzün sonuna kadar erişiminizi korursunuz.
+                **2. İade Politikası (7 Gün Garanti)**
+                İlk satın alma işlemleri için, kredilerin %20'sinden azının kullanılmış olması şartıyla 7 gün içinde iade garantisi sunuyoruz. İade talebi için destek ekibimize ulaşın.
             `
         }
     }

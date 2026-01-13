@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
       legal: lang === 'tr' ? "Yasal & Güven" : "Legal & Trust",
       privacy: lang === 'tr' ? "Gizlilik Politikası" : "Privacy Policy",
       terms: lang === 'tr' ? "Kullanım Şartları" : "Terms of Service",
-      refund: lang === 'tr' ? "İade Politikası" : "Refund Policy",
+      refund: lang === 'tr' ? "İptal ve İade Politikası" : "Refund & Cancellation Policy",
       contact: lang === 'tr' ? "İletişim" : "Contact Us",
       blog: "Blog",
       audit: lang === 'tr' ? "Mağaza Denetimi" : "Shop Audit",
@@ -44,6 +44,10 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
                 <p className="text-slate-500 text-sm leading-relaxed mb-6">
                     {t.tagline}
                 </p>
+                <div className="text-xs text-slate-500 mb-4 space-y-1">
+                    <p className="font-bold text-slate-400">Mundo Global LLC</p>
+                    <p>support@ranklistic.com</p>
+                </div>
                 <div className="flex items-center gap-4">
                     {/* Social Placeholders */}
                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-orange-500 hover:text-white transition-all cursor-pointer">
@@ -51,9 +55,6 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
                     </div>
                     <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-pink-600 hover:text-white transition-all cursor-pointer">
                         <span className="font-bold text-xs">In</span>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-blue-600 hover:text-white transition-all cursor-pointer">
-                        <span className="font-bold text-xs">Fb</span>
                     </div>
                 </div>
             </div>
@@ -74,7 +75,7 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
                 <ul className="space-y-2 text-sm text-slate-400">
                     <li><a href="#" className="hover:text-orange-400 transition-colors">{t.blog}</a></li>
                     <li><a href="#" className="hover:text-orange-400 transition-colors">Affiliate Program</a></li>
-                    <li><a href="#" className="hover:text-orange-400 transition-colors">{t.contact}</a></li>
+                    <li><a href="mailto:support@ranklistic.com" className="hover:text-orange-400 transition-colors">{t.contact}</a></li>
                 </ul>
             </div>
 
@@ -98,7 +99,7 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex flex-col text-slate-600 text-xs text-center md:text-left">
                 <p>&copy; {currentYear} <strong>Mundo Global LLC</strong>. {t.rights}</p>
-                <p className="mt-1 opacity-70">Ranklistic AI is a product of Mundo Global LLC.</p>
+                <p className="mt-1 opacity-70">Ranklistic AI is a registered trademark of Mundo Global LLC.</p>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-600">
                 <StarIcon className="w-3 h-3 text-yellow-500" />
