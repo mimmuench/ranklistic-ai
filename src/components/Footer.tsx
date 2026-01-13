@@ -96,9 +96,10 @@ export const Footer: React.FC<FooterProps> = ({ lang, onOpenPolicy }) => {
 
         {/* Bottom Bar */}
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-slate-600 text-xs">
-                &copy; {currentYear} Ranklistic Inc. {t.rights}
-            </p>
+            <div className="flex flex-col text-slate-600 text-xs text-center md:text-left">
+                <p>&copy; {currentYear} <strong>Mundo Global LLC</strong>. {t.rights}</p>
+                <p className="mt-1 opacity-70">Ranklistic AI is a product of Mundo Global LLC.</p>
+            </div>
             <div className="flex items-center gap-2 text-xs text-slate-600">
                 <StarIcon className="w-3 h-3 text-yellow-500" />
                 <span>Made for Makers</span>

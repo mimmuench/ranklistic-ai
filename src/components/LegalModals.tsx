@@ -30,8 +30,8 @@ const legalContent = {
         terms: {
             title: "Terms of Service",
             text: `
-                **1. Acceptance**
-                By using Ranklistic, you agree to these terms. If you represent an agency, you agree that you have the authority to bind that entity.
+                **1. Introduction**
+                Ranklistic AI is a service operated by **Mundo Global LLC**. By using Ranklistic, you agree to these terms. If you represent an agency, you agree that you have the authority to bind that entity.
 
                 **2. Fair Use**
                 You may not reverse engineer, scrape, or excessively burden our API. Accounts found abusing the credit system will be suspended without refund.
@@ -74,8 +74,8 @@ const legalContent = {
         terms: {
             title: "Kullanım Şartları",
             text: `
-                **1. Kabul**
-                Ranklistic'i kullanarak bu şartları kabul etmiş olursunuz. Bir ajansı temsil ediyorsanız, o kurumu bağlama yetkisine sahip olduğunuzu kabul edersiniz.
+                **1. Giriş**
+                Ranklistic AI, **Mundo Global LLC** tarafından işletilen bir hizmettir. Ranklistic'i kullanarak bu şartları kabul etmiş olursunuz.
 
                 **2. Adil Kullanım**
                 API'mizi tersine mühendislik yapamaz, kazıyamaz veya aşırı yükleyemezsiniz. Kredi sistemini kötüye kullandığı tespit edilen hesaplar iade yapılmaksızın askıya alınacaktır.
