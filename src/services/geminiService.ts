@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import type { AuditItem, ChatMessage, CompetitorAnalysisResult, MarketAnalysisResult, ListingOptimizerResult } from '../types';
 
 // API Key doğrudan process.env'den alınır.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
 // ... (Existing helper functions like cleanJsonString) ...
 export const cleanJsonString = (str: string): string => {
@@ -78,7 +78,7 @@ export const generateProductVideo = async (imageBase64: string, promptText: stri
         if (!videoUri) throw new Error("No video URI returned.");
 
         // IMPORTANT: Append API Key for access
-        return `${videoUri}&key=${process.env.API_KEY}`;
+        return `${videoUri}&key=${import.meta.env.VITE_GOOGLE_API_KEY}`;
 
     } catch (error) {
         console.error("Video Gen Error:", error);
