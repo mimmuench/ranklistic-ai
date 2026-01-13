@@ -20,7 +20,7 @@ import { ChatModal } from './components/ChatModal';
 import { runEtsyAudit, getChatResponse } from './services/geminiService';
 import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessage } from './types';
 
-// --- 1. GERÇEK SUPABASE BAĞLANTISI ---
+// --- SUPABASE BAĞLANTISI ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -33,6 +33,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   // Modals & Data
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -46,227 +47,387 @@ export default function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>({ language: 'en', notifications: true });
 
-  // --- 2. AUTH KONTROLÜ (ZAMAN AŞIMI KORUMALI) ---
+  // --- AUTH KONTROLÜ ---
   useEffect(() => {
-      // Supabase'den yanıt beklerken kilitlenmeyi önlemek için 2 saniyelik sayaç
-      const timeoutTimer = setTimeout(() => {
-          setLoading(false); // 2 saniye dolunca yüklemeyi zorla bitir
-      }, 2000);
+    let mounted = true;
 
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    const initAuth = async () => {
+      try {
+        // İlk session kontrolü
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setAuthError(sessionError.message);
+        }
+        
+        if (mounted) {
           setUser(session?.user ?? null);
           setLoading(false);
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-          setUser(session?.user ?? null);
+          
+          // Eğer URL'de #access_token varsa (magic link'ten döndüyse)
+          if (window.location.hash.includes('access_token')) {
+            console.log('Magic link detected, cleaning URL...');
+            // URL'i temizle
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+      } catch (error) {
+        console.error('Init auth error:', error);
+        if (mounted) {
           setLoading(false);
-      });
+        }
+      }
+    };
 
-      return () => {
-          subscription.unsubscribe();
-          clearTimeout(timeoutTimer);
-      };
-  }, []);
+    initAuth();
 
-  // --- 3. E-POSTA İLE GİRİŞ FONKSİYONU (GOOGLE YOK) ---
-  const handleSimpleLogin = async () => {
-    const email = window.prompt("Lütfen E-mail adresinizi yazın:");
-    if (!email) return;
-
-    // Localhost dışında çalışırken basit bir email kontrolü
-    if (window.location.hostname !== 'localhost' && !email.includes('@')) {
-        alert("Geçersiz e-mail adresi.");
-        return;
-    }
-
-    alert("Giriş bağlantısı gönderiliyor... Lütfen bekleyin.");
-    
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        emailRedirectTo: window.location.origin 
+    // Auth state değişikliklerini dinle
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+        
+        // Başarılı giriş sonrası
+        if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in successfully!');
+          setAuthError(null);
+        }
+        
+        // Magic link ile giriş
+        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
       }
     });
 
-    if (error) {
-      alert("Hata: " + error.message);
-    } else {
-      alert(`Harika! ${email} adresine bir 'Magic Link' gönderdik. Mail kutunu aç ve o linke tıkla.`);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // --- EMAIL/PASSWORD İLE GİRİŞ ---
+  const handleEmailPasswordLogin = async (email: string, password: string, isSignUp: boolean = false) => {
+    setLoading(true);
+    setAuthError(null);
+
+    try {
+      if (isSignUp) {
+        // Yeni hesap oluştur
+        const { data, error } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          }
+        });
+
+        if (error) {
+          console.error('Sign up error:', error);
+          setAuthError(error.message);
+          return { success: false, message: error.message };
+        }
+
+        console.log('Sign up successful!', data);
+        return { success: true, message: 'Account created! You can now sign in.' };
+      } else {
+        // Giriş yap
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (error) {
+          console.error('Sign in error:', error);
+          setAuthError(error.message);
+          return { success: false, message: error.message };
+        }
+
+        console.log('Sign in successful!', data);
+        setUser(data.user);
+        return { success: true, message: 'Welcome back!' };
+      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      setAuthError(error.message);
+      return { success: false, message: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSignOut = async () => {
-      await supabase.auth.signOut();
-      setUser(null);
+  // --- GOOGLE İLE GİRİŞ ---
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setAuthError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Google login error:', error);
+        setAuthError(error.message);
+        alert(`Error: ${error.message}`);
+        setLoading(false);
+      }
+      // OAuth redirect olacağı için loading state'i değiştirmiyoruz
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      setAuthError(error.message);
+      alert(`Error: ${error.message}`);
+      setLoading(false);
+    }
   };
 
-  // --- Yardımcı Fonksiyonlar ---
+  // --- ÇIKIŞ ---
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setAuditResult(null);
+      setActiveTab('dashboard');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  // --- YARDIMCI FONKSİYONLAR ---
   const useCredit = async (amount: number = 1): Promise<boolean> => {
-      if (!user) return false;
-      return true; 
+    if (!user) return false;
+    return true; 
   };
 
   const handleAudit = async (url: string, manualStats?: any) => {
-      if (!await useCredit(1)) return;
-      setIsLoading(true);
-      try {
-          const resStr = await runEtsyAudit(url, manualStats);
-          const res = JSON.parse(resStr);
-          setAuditResult(res);
-          setActiveTab('audit');
-      } catch (e) {
-          console.error(e);
-          alert("Audit failed. Please try again.");
-      } finally {
-          setIsLoading(false);
-      }
+    if (!await useCredit(1)) return;
+    setIsLoading(true);
+    try {
+      const resStr = await runEtsyAudit(url, manualStats);
+      const res = JSON.parse(resStr);
+      setAuditResult(res);
+      setActiveTab('audit');
+    } catch (e) {
+      console.error(e);
+      alert("Audit failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleOptimizerTransfer = (data: OptimizerTransferData) => {
-      setOptimizerData(data);
-      setActiveTab('optimizer');
+    setOptimizerData(data);
+    setActiveTab('optimizer');
   };
 
   const startAuditChat = (item: AuditItem) => {
-      setSelectedAuditItem(item);
-      setChatHistory([{ sender: 'ai', text: `Hi! I see you need help with **${item.category}**. ${item.recommendations[0]}` }]);
-      setShowChatModal(true);
+    setSelectedAuditItem(item);
+    setChatHistory([{ sender: 'ai', text: `Hi! I see you need help with **${item.category}**. ${item.recommendations[0]}` }]);
+    setShowChatModal(true);
   };
 
   const handleChatSendMessage = async (message: string, image: string | null) => {
-        if (!selectedAuditItem) return;
-        const newHistory: ChatMessage[] = [...chatHistory, { sender: 'user', text: message, image: image || undefined }];
-        setChatHistory(newHistory);
-        setIsChatLoading(true);
-        try {
-            const aiResponse = await getChatResponse(selectedAuditItem, newHistory, message, image);
-            setChatHistory([...newHistory, { sender: 'ai', text: aiResponse }]);
-        } catch (e) {
-            console.error(e);
-            setChatHistory([...newHistory, { sender: 'ai', text: "Sorry, error." }]);
-        } finally {
-            setIsChatLoading(false);
-        }
+    if (!selectedAuditItem) return;
+    const newHistory: ChatMessage[] = [...chatHistory, { sender: 'user', text: message, image: image || undefined }];
+    setChatHistory(newHistory);
+    setIsChatLoading(true);
+    try {
+      const aiResponse = await getChatResponse(selectedAuditItem, newHistory, message, image);
+      setChatHistory([...newHistory, { sender: 'ai', text: aiResponse }]);
+    } catch (e) {
+      console.error(e);
+      setChatHistory([...newHistory, { sender: 'ai', text: "Sorry, error." }]);
+    } finally {
+      setIsChatLoading(false);
+    }
   };
 
   const isVisible = (id: string) => activeTab === id ? 'block' : 'hidden';
 
-  // --- 4. GÖRÜNÜM MANTIĞI ---
+  // --- GÖRÜNÜM MANTĞI ---
   
   if (loading) {
     return (
-        <div className="flex h-screen items-center justify-center bg-[#0B0F19] text-white">
-             <div className="text-center">
-                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                 <p>Sistem Hazırlanıyor...</p>
-             </div>
+      <div className="flex h-screen items-center justify-center bg-[#0B0F19] text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+          {authError && (
+            <p className="text-red-400 text-sm mt-2">Error: {authError}</p>
+          )}
         </div>
+      </div>
     );
   }
 
-  // KULLANICI YOKSA -> LANDING PAGE (Email girişi bağlı)
+  // KULLANICI YOKSA -> LANDING PAGE
   if (!user) {
-      return (
-        <LandingPage 
-            onGetStarted={() => setLang('en')} 
-            onLoginSuccess={handleSimpleLogin} 
-        />
-      );
+    return (
+      <LandingPage 
+        onGetStarted={handleGoogleLogin}
+        onEmailPasswordLogin={handleEmailPasswordLogin}
+        onGoogleLogin={handleGoogleLogin}
+      />
+    );
   }
 
   // KULLANICI VARSA -> PANEL
   return (
     <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
-        <Sidebar 
-            activeTab={activeTab} 
-            setActiveTab={(t) => setActiveTab(t)} 
-            lang={lang} 
-            credits={user?.user_metadata?.credits || 5} 
-            userPlan={user?.user_metadata?.plan || 'Free'}
-            userEmail={user.email}
-            onOpenSubscription={() => setShowSubscriptionModal(true)}
-            isMobileOpen={isMobileOpen}
-            setIsMobileOpen={setIsMobileOpen}
-            onSignOut={handleSignOut}
-            onOpenSettings={() => setShowSettingsModal(true)}
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={(t) => setActiveTab(t)} 
+        lang={lang} 
+        credits={user?.user_metadata?.credits || 5} 
+        userPlan={user?.user_metadata?.plan || 'Free'}
+        userEmail={user.email}
+        onOpenSubscription={() => setShowSubscriptionModal(true)}
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+        onSignOut={handleSignOut}
+        onOpenSettings={() => setShowSettingsModal(true)}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        <Header 
+          credits={user?.user_metadata?.credits || 5} 
+          lang={lang} 
+          onOpenSubscription={() => setShowSubscriptionModal(true)}
+          userPlan={user?.user_metadata?.plan || 'Free'}
         />
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            <Header 
-                credits={user?.user_metadata?.credits || 5} 
-                lang={lang} 
-                onOpenSubscription={() => setShowSubscriptionModal(true)}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+          <div className="max-w-7xl mx-auto">
+            
+            {activeTab === 'dashboard' && (
+              <Dashboard 
+                lang={lang}
+                userCredits={user?.user_metadata?.credits || 5}
                 userPlan={user?.user_metadata?.plan || 'Free'}
-            />
+                onNewAudit={() => setActiveTab('audit')}
+                onNewListing={() => setActiveTab('optimizer')}
+                onNewMarket={() => setActiveTab('market')}
+                onGoToLaunchpad={() => setActiveTab('launchpad')}
+                onGoToReelGen={() => setActiveTab('reelGen')}
+                onGoToTrendRadar={() => setActiveTab('trendRadar')}
+                onLoadReport={(record) => {
+                  if (record.type === 'audit') {
+                    setAuditResult(record.data);
+                    setActiveTab('audit');
+                  }
+                }}
+                onOpenSubscription={() => setShowSubscriptionModal(true)}
+              />
+            )}
 
-            <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-                <div className="max-w-7xl mx-auto">
-                    
-                    {activeTab === 'dashboard' && (
-                        <Dashboard 
-                            lang={lang}
-                            userCredits={user?.user_metadata?.credits || 5}
-                            userPlan={user?.user_metadata?.plan || 'Free'}
-                            onNewAudit={() => setActiveTab('audit')}
-                            onNewListing={() => setActiveTab('optimizer')}
-                            onNewMarket={() => setActiveTab('market')}
-                            onGoToLaunchpad={() => setActiveTab('launchpad')}
-                            onGoToReelGen={() => setActiveTab('reelGen')}
-                            onGoToTrendRadar={() => setActiveTab('trendRadar')}
-                            onLoadReport={(record) => {
-                                if (record.type === 'audit') {
-                                    setAuditResult(record.data);
-                                    setActiveTab('audit');
-                                }
-                            }}
-                            onOpenSubscription={() => setShowSubscriptionModal(true)}
-                        />
-                    )}
-
-                    <div className={isVisible('audit')}>
-                        {!auditResult ? (
-                            <>
-                                <div className="text-center mb-10">
-                                    <h2 className="text-3xl font-bold text-white mb-2">{lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}</h2>
-                                    <p className="text-gray-400">{lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}</p>
-                                </div>
-                                <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
-                            </>
-                        ) : (
-                            <div>
-                                <button onClick={() => setAuditResult(null)} className="mb-4 text-sm text-gray-400 hover:text-white">&larr; Back to Audit Form</button>
-                                <AuditResult 
-                                    result={auditResult} 
-                                    onStartChat={startAuditChat} 
-                                    shopUrl={auditResult.shopName || "Your Shop"}
-                                    userPlan={user?.user_metadata?.plan || 'Free'}
-                                    brandSettings={userSettings}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <div className={isVisible('optimizer')}>
-                        <ListingOptimizer initialData={optimizerData} />
-                    </div>
-                    <div className={isVisible('competitor')}><CompetitorAnalyzer /></div>
-                    <div className={isVisible('market')}><GlobalMarketAnalyzer lang={lang} /></div>
-                    <div className={isVisible('keywords')}><KeywordResearch lang={lang} /></div>
-                    <div className={isVisible('launchpad')}><ProductLaunchpad auditResult={auditResult} onUseForListing={handleOptimizerTransfer} /></div>
-                    <div className={isVisible('trendRadar')}><TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} /></div>
-                    <div className={isVisible('newShop')}><NewShopStarter lang={lang} /></div>
-                    <div className={isVisible('reelGen')}><ReelGen lang={lang} userCredits={user?.user_metadata?.credits || 0} userPlan={user?.user_metadata?.plan} onDeductCredit={useCredit} onOpenSubscription={() => setShowSubscriptionModal(true)} /></div>
-
+            <div className={isVisible('audit')}>
+              {!auditResult ? (
+                <>
+                  <div className="text-center mb-10">
+                    <h2 className="text-3xl font-bold text-white mb-2">
+                      {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
+                    </h2>
+                    <p className="text-gray-400">
+                      {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
+                    </p>
+                  </div>
+                  <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
+                </>
+              ) : (
+                <div>
+                  <button 
+                    onClick={() => setAuditResult(null)} 
+                    className="mb-4 text-sm text-gray-400 hover:text-white"
+                  >
+                    &larr; Back to Audit Form
+                  </button>
+                  <AuditResult 
+                    result={auditResult} 
+                    onStartChat={startAuditChat} 
+                    shopUrl={auditResult.shopName || "Your Shop"}
+                    userPlan={user?.user_metadata?.plan || 'Free'}
+                    brandSettings={userSettings}
+                  />
                 </div>
-            </main>
-        </div>
+              )}
+            </div>
 
-        <SubscriptionModal isOpen={showSubscriptionModal} onClose={() => setShowSubscriptionModal(false)} lang={lang} onSuccess={() => {}} />
-        <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} user={user} settings={userSettings} onSaveSettings={setUserSettings} onOpenSubscription={() => { setShowSettingsModal(false); setShowSubscriptionModal(true); }} lang={lang} />
-        {selectedAuditItem && (
-            <ChatModal isOpen={showChatModal} onClose={() => setShowChatModal(false)} auditItem={selectedAuditItem} history={chatHistory} onSendMessage={handleChatSendMessage} isLoading={isChatLoading} />
-        )}
+            <div className={isVisible('optimizer')}>
+              <ListingOptimizer initialData={optimizerData} />
+            </div>
+            <div className={isVisible('competitor')}>
+              <CompetitorAnalyzer />
+            </div>
+            <div className={isVisible('market')}>
+              <GlobalMarketAnalyzer lang={lang} />
+            </div>
+            <div className={isVisible('keywords')}>
+              <KeywordResearch lang={lang} />
+            </div>
+            <div className={isVisible('launchpad')}>
+              <ProductLaunchpad 
+                auditResult={auditResult} 
+                onUseForListing={handleOptimizerTransfer} 
+              />
+            </div>
+            <div className={isVisible('trendRadar')}>
+              <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
+            </div>
+            <div className={isVisible('newShop')}>
+              <NewShopStarter lang={lang} />
+            </div>
+            <div className={isVisible('reelGen')}>
+              <ReelGen 
+                lang={lang} 
+                userCredits={user?.user_metadata?.credits || 0} 
+                userPlan={user?.user_metadata?.plan} 
+                onDeductCredit={useCredit} 
+                onOpenSubscription={() => setShowSubscriptionModal(true)} 
+              />
+            </div>
+
+          </div>
+        </main>
+      </div>
+
+      <SubscriptionModal 
+        isOpen={showSubscriptionModal} 
+        onClose={() => setShowSubscriptionModal(false)} 
+        lang={lang} 
+        onSuccess={() => {}} 
+      />
+      <SettingsModal 
+        isOpen={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)} 
+        user={user} 
+        settings={userSettings} 
+        onSaveSettings={setUserSettings} 
+        onOpenSubscription={() => { 
+          setShowSettingsModal(false); 
+          setShowSubscriptionModal(true); 
+        }} 
+        lang={lang} 
+      />
+      {selectedAuditItem && (
+        <ChatModal 
+          isOpen={showChatModal} 
+          onClose={() => setShowChatModal(false)} 
+          auditItem={selectedAuditItem} 
+          history={chatHistory} 
+          onSendMessage={handleChatSendMessage} 
+          isLoading={isChatLoading} 
+        />
+      )}
     </div>
   );
 }

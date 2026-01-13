@@ -4,8 +4,16 @@ import { SparklesIcon, SearchIcon, RocketIcon, CheckCircleIcon, PrinterIcon, Sta
 import { Footer } from './Footer';
 import { LegalModal } from './LegalModals';
 import { AnnouncementBar } from './AnnouncementBar';
+import { createClient } from '@supabase/supabase-js';
 import { generateDemoTitle } from '../services/geminiService';
-import { supabaseMock, isDemoMode, UserProfile } from '../services/supabaseService';
+
+// GERÇEK BAĞLANTIYI BURADA KURUYORUZ
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+// Demo modunu kapattık, gerçek moddayız
+const isDemoMode = false;
+// Tip tanımlaması (Hata vermemesi için)
+type UserProfile = any;
 
 interface LandingPageProps {
   onGetStarted: (lang: 'en' | 'tr') => void;
@@ -32,7 +40,6 @@ interface FAQItemProps {
 }
 
 const translations = {
-  // ... (Same as before, abbreviated for brevity in response)
   en: {
     nav: { features: "Features", compare: "Compare", pricing: "Pricing", login: "Login", tryDemo: "Try Demo" },
     hero: {
@@ -147,6 +154,15 @@ const translations = {
               "Commercial Use License"
           ] 
       }
+    },
+    faq: {
+        title: "Frequently Asked Questions",
+        items: [
+            { q: "Is this safe for my Etsy shop?", a: "Yes, absolutely. We only use public data that is visible to everyone on the internet. We do not access your private Etsy account, ask for your password, or use API keys that could put your shop at risk." },
+            { q: "How accurate is the AI?", a: "We use Google's latest Gemini 2.5 Flash models, specifically tuned for e-commerce. While no tool can guarantee sales, our users typically see a 30-50% increase in traffic after optimizing their listings." },
+            { q: "Can I cancel anytime?", a: "Yes. There are no contracts. You can cancel your subscription from your dashboard with one click." },
+            { q: "Do unused credits rollover?", a: "No, credits reset every month to ensure we can maintain server speeds for all users. Pick the plan that fits your volume." }
+        ]
     },
     finalCta: {
       title: "Ready to dominate your niche?",
@@ -269,6 +285,15 @@ const translations = {
           ] 
       }
     },
+    faq: {
+        title: "Sıkça Sorulan Sorular",
+        items: [
+            { q: "Etsy mağazam için güvenli mi?", a: "Evet, kesinlikle. Sadece internetteki herkesin görebildiği halka açık verileri kullanırız. Şifrenizi istemeyiz, hesabınıza girmeyiz veya riskli API işlemleri yapmayız." },
+            { q: "Yapay zeka ne kadar doğru?", a: "Google'ın e-ticaret için özelleştirilmiş Gemini 2.5 modellerini kullanıyoruz. Kesin satış garantisi verilemese de, kullanıcılarımız optimizasyon sonrası genelde %30-50 trafik artışı görmektedir." },
+            { q: "İstediğim zaman iptal edebilir miyim?", a: "Evet. Kontrat yok. Panelinizden tek tıkla aboneliğinizi durdurabilirsiniz." },
+            { q: "Kullanılmayan krediler devreder mi?", a: "Hayır, sunucu hızını korumak için krediler her ay yenilenir. Hacminize uygun planı seçmenizi öneririz." }
+        ]
+    },
     finalCta: {
       title: "Nişini domine etmeye hazır mısın?",
       subtitle: "Başarısını otomatize eden binlerce satıcıya katıl. İlk denetim için kredi kartı gerekmez.",
@@ -277,7 +302,6 @@ const translations = {
   }
 };
 
-// ... (Helper Components like LiveActivityFeed etc. same as before) ...
 const LiveActivityFeed: React.FC<{lang: Language}> = ({lang}) => {
     const [activity, setActivity] = useState<{user: string, action: string, flag: string, time: string}>({user: "", action: "", flag: "", time: ""});
     const [show, setShow] = useState(false);
@@ -319,7 +343,7 @@ const LiveActivityFeed: React.FC<{lang: Language}> = ({lang}) => {
     }, [lang]);
 
     return (
-        <div className={`fixed bottom-6 left-6 z-50 transition-all duration-500 transform ${show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+        <div className={`fixed bottom-6 left-6 z-50 transition-all duration-500 transform ${show ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} hidden md:block`}>
             <div className="flex items-center space-x-3 bg-gray-900/90 backdrop-blur-md border border-gray-700/50 rounded-lg p-3 shadow-2xl max-w-xs">
                 <div className="text-2xl">{activity.flag}</div>
                 <div>
@@ -343,7 +367,6 @@ const LiveActivityFeed: React.FC<{lang: Language}> = ({lang}) => {
     );
 };
 
-// ... (PricingCard, FAQItem, FeatureCarousel same as before) ...
 const PricingCard: React.FC<PricingCardProps> = ({ title, target, price, originalPrice, billingNote, features, buttonText, onButtonClick, isPopular }) => {
     return (
         <div className={`relative flex flex-col p-8 rounded-2xl border transition-all duration-300 group hover:scale-105 ${
@@ -423,7 +446,6 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
 
 const FeatureCarousel = () => {
     const [slide, setSlide] = useState(0);
-    // ... (Keep existing implementation of Carousel)
     useEffect(() => {
         const interval = setInterval(() => {
             setSlide(prev => (prev + 1) % 3);
@@ -628,20 +650,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       setErrorMessage('');
 
       try {
-          const { user, error } = await supabaseMock.auth.signIn(email);
+          // --- GERÇEK E-POSTA GÖNDERİMİ ---
+          const { error } = await supabase.auth.signInWithOtp({
+              email: email,
+              options: {
+                  // Giriş yapınca ana sayfaya dön
+                  emailRedirectTo: window.location.origin
+              }
+          });
+
           if (error) {
               setLoginStatus('error');
-              setErrorMessage(error.message || "Login failed");
-          } else if (user) {
+              setErrorMessage(error.message);
+          } else {
+              // BAŞARILI! E-posta gönderildi ekranını aç
               setLoginStatus('success');
-              // IMPORTANT: Directly notify parent to switch view without reload
-              setTimeout(() => {
-                  onLoginSuccess(user);
-              }, 1000);
+              // Not: onLoginSuccess'i çağırmıyoruz çünkü kullanıcı henüz linke tıklamadı.
+              // Linke tıklayıp dönünce App.tsx onu otomatik tanıyacak.
           }
       } catch (e) {
           setLoginStatus('error');
-          setErrorMessage("An unexpected error occurred.");
+          setErrorMessage("Beklenmedik bir hata oluştu.");
       }
   };
 
@@ -982,24 +1011,224 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
           </div>
        </section>
 
-      {/* Features, Pricing etc. Sections (Same as before) */}
+      {/* COMPARISON TABLE */}
+      <section id="comparison" className="py-24 relative z-10 bg-[#0B0F19]">
+          <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-5xl">
+              <div className="text-center mb-16">
+                  <h2 className="text-3xl md:text-5xl font-bold mb-4">{t.comparison.title}</h2>
+                  <div className="flex justify-center gap-8 mt-8">
+                      <div className="text-left">
+                          <h3 className="text-red-400 font-bold mb-2">{t.comparison.trapTitle}</h3>
+                          <ul className="text-sm text-gray-400 space-y-2">
+                              {t.comparison.trapItems.map((item, i) => <li key={i}>❌ {item}</li>)}
+                          </ul>
+                      </div>
+                      <div className="w-px bg-gray-700"></div>
+                      <div className="text-left">
+                          <h3 className="text-green-400 font-bold mb-2">{t.comparison.planTitle}</h3>
+                          <ul className="text-sm text-gray-400 space-y-2">
+                              {t.comparison.planItems.map((item, i) => <li key={i}>✅ {item}</li>)}
+                          </ul>
+                      </div>
+                  </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-2xl border border-gray-700 shadow-2xl">
+                  <table className="w-full text-left bg-[#161b28]">
+                      <thead>
+                          <tr className="border-b border-gray-700 bg-gray-900">
+                              <th className="p-6 text-gray-400 font-medium">{t.comparison.tableFeatures}</th>
+                              <th className="p-6 text-orange-400 font-bold text-lg bg-orange-900/10 border-x border-orange-500/20">{t.comparison.tableUs}</th>
+                              <th className="p-6 text-gray-400 font-medium">{t.comparison.tableOthers}</th>
+                              <th className="p-6 text-gray-400 font-medium">{t.comparison.tableGpt}</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-700">
+                          {t.comparison.rows.map((row, i) => (
+                              <tr key={i} className="hover:bg-gray-800/50 transition-colors">
+                                  <td className="p-6 font-bold text-white">{row.name}</td>
+                                  <td className="p-6 text-green-400 font-bold bg-orange-900/5 border-x border-orange-500/10"><CheckCircleIcon className="w-5 h-5 inline mr-2"/>{row.us}</td>
+                                  <td className="p-6 text-gray-400">{row.others}</td>
+                                  <td className="p-6 text-gray-400">{row.gpt}</td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </section>
+
+      {/* FEATURES SECTION */}
       <section id="features" className="py-24 relative z-10 bg-[#0B0F19]">
           <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl space-y-32">
+              
+              {/* Feature 1: Audit */}
               <div className="flex flex-col md:flex-row items-center gap-16">
                   <div className="md:w-1/2">
                       <div className="bg-orange-500/20 p-3 rounded-lg w-fit mb-6"><SearchIcon className="w-8 h-8 text-orange-500"/></div>
                       <h2 className="text-3xl md:text-5xl font-bold mb-6">{t.features.audit.title} <br/><span className="text-orange-400">{t.features.audit.titleHighlight}</span></h2>
                       <p className="text-lg text-gray-400 leading-relaxed mb-8">{t.features.audit.desc}</p>
-                      <ul className="space-y-3 mb-8">{t.features.audit.list.map((item, i) => (<li key={i} className="flex items-center gap-3 text-gray-300"><CheckCircleIcon className="w-5 h-5 text-green-500"/> {item}</li>))}</ul>
-                      <button onClick={handleOpenLogin} className="text-orange-400 font-bold hover:text-orange-300 flex items-center gap-2">{t.features.audit.cta} &rarr;</button>
+                      <ul className="space-y-3 mb-8">
+                          {t.features.audit.list.map((item, i) => (<li key={i} className="flex items-center gap-3 text-gray-300"><CheckCircleIcon className="w-5 h-5 text-green-500"/> {item}</li>))}
+                      </ul>
+                      <button onClick={handleOpenLogin} className="text-orange-400 font-bold hover:text-orange-300 flex items-center gap-2 text-lg">{t.features.audit.cta} &rarr;</button>
                   </div>
-                  <div className="md:w-1/2 relative"><div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-full"></div><div className="relative bg-[#161b28] border border-gray-700 rounded-2xl p-6 shadow-2xl"><div className="flex items-center justify-between mb-4"><span className="font-bold text-xl">Shop Score</span><span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">4.2/10</span></div><div className="h-2 bg-gray-700 rounded-full mb-6"><div className="w-[42%] h-full bg-red-500 rounded-full"></div></div><div className="space-y-3"><div className="p-3 bg-red-900/20 border border-red-500/30 rounded text-sm text-red-200">Missing 13 tags on 4 listings.</div><div className="p-3 bg-yellow-900/20 border border-yellow-500/30 rounded text-sm text-yellow-200">Titles are too short for SEO.</div></div></div></div>
+                  <div className="md:w-1/2 relative">
+                      <div className="absolute inset-0 bg-orange-500/20 blur-3xl rounded-full"></div>
+                      <div className="relative bg-[#161b28] border border-gray-700 rounded-2xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                          <div className="flex items-center justify-between mb-4"><span className="font-bold text-xl">Shop Score</span><span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">4.2/10</span></div>
+                          <div className="h-2 bg-gray-700 rounded-full mb-6"><div className="w-[42%] h-full bg-red-500 rounded-full"></div></div>
+                          <div className="space-y-3">
+                              <div className="p-3 bg-red-900/20 border border-red-500/30 rounded text-sm text-red-200 flex gap-2"><CloseIcon className="w-4 h-4 mt-0.5"/> Missing 13 tags on 4 listings.</div>
+                              <div className="p-3 bg-yellow-900/20 border border-yellow-500/30 rounded text-sm text-yellow-200 flex gap-2"><StarIcon className="w-4 h-4 mt-0.5"/> Titles are too short for SEO.</div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Feature 2: Visual Launchpad */}
+              <div className="flex flex-col md:flex-row-reverse items-center gap-16">
+                  <div className="md:w-1/2">
+                      <div className="bg-pink-500/20 p-3 rounded-lg w-fit mb-6"><RocketIcon className="w-8 h-8 text-pink-500"/></div>
+                      <h2 className="text-3xl md:text-5xl font-bold mb-6">{t.features.launchpad.title} <br/><span className="text-pink-500">{t.features.launchpad.titleHighlight}</span></h2>
+                      <p className="text-lg text-gray-400 leading-relaxed mb-8">{t.features.launchpad.desc}</p>
+                      <ul className="space-y-3 mb-8">
+                          {t.features.launchpad.list.map((item, i) => (<li key={i} className="flex items-center gap-3 text-gray-300"><CheckCircleIcon className="w-5 h-5 text-green-500"/> {item}</li>))}
+                      </ul>
+                      <button onClick={handleOpenLogin} className="text-pink-500 font-bold hover:text-pink-400 flex items-center gap-2 text-lg">{t.features.launchpad.cta} &rarr;</button>
+                  </div>
+                  <div className="md:w-1/2 relative">
+                      <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full"></div>
+                      <div className="relative bg-[#161b28] border border-gray-700 rounded-2xl overflow-hidden shadow-2xl transform -rotate-2 hover:rotate-0 transition-transform duration-500">
+                          <img src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=500" className="w-full h-48 object-cover opacity-50" alt="Product" />
+                          <div className="p-6 relative">
+                              <div className="absolute -top-10 right-6 bg-green-500 text-black font-bold px-4 py-2 rounded-lg shadow-lg">9.2/10 Viability</div>
+                              <h3 className="font-bold text-lg text-white mb-2">Gold Pendant Necklace</h3>
+                              <p className="text-sm text-gray-400 mb-4">"High potential for 'Minimalist Jewelry' niche. Suggest pricing: $45-$60."</p>
+                              <div className="flex gap-2"><span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">#goldjewelry</span><span className="text-xs bg-gray-700 px-2 py-1 rounded text-gray-300">#giftforher</span></div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Feature 3: Competitor Spy */}
+              <div className="flex flex-col md:flex-row items-center gap-16">
+                  <div className="md:w-1/2">
+                      <div className="bg-blue-500/20 p-3 rounded-lg w-fit mb-6"><ScaleIcon className="w-8 h-8 text-blue-500"/></div>
+                      <h2 className="text-3xl md:text-5xl font-bold mb-6">{t.features.competitor.title} <br/><span className="text-blue-500">{t.features.competitor.titleHighlight}</span></h2>
+                      <p className="text-lg text-gray-400 leading-relaxed mb-8">{t.features.competitor.desc}</p>
+                      <ul className="space-y-3 mb-8">
+                          {t.features.competitor.list.map((item, i) => (<li key={i} className="flex items-center gap-3 text-gray-300"><CheckCircleIcon className="w-5 h-5 text-green-500"/> {item}</li>))}
+                      </ul>
+                      <button onClick={handleOpenLogin} className="text-blue-500 font-bold hover:text-blue-400 flex items-center gap-2 text-lg">{t.features.competitor.cta} &rarr;</button>
+                  </div>
+                  <div className="md:w-1/2 relative">
+                      <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full"></div>
+                      <div className="relative bg-[#161b28] border border-gray-700 rounded-2xl p-6 shadow-2xl">
+                          <div className="flex justify-between border-b border-gray-700 pb-4 mb-4">
+                              <div><div className="text-xs text-gray-500 uppercase">You</div><div className="text-xl font-bold text-red-400">12 Sales/mo</div></div>
+                              <div className="text-right"><div className="text-xs text-gray-500 uppercase">Competitor</div><div className="text-xl font-bold text-green-400">450 Sales/mo</div></div>
+                          </div>
+                          <div className="bg-blue-900/20 p-4 rounded-lg border border-blue-500/20">
+                              <div className="text-xs text-blue-300 font-bold uppercase mb-2">Strategy Gap</div>
+                              <p className="text-sm text-gray-300">They use "Free Shipping Guarantee" and focus on "Gift" keywords. You don't.</p>
+                          </div>
+                      </div>
+                  </div>
               </div>
           </div>
       </section>
 
-      {/* Other sections omitted for brevity but should be kept if full file is needed */}
-      <section id="pricing" className="py-24 relative z-10 bg-[#0d121f]"><div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl"><div className="text-center mb-10"><h2 className="text-3xl md:text-5xl font-bold mb-4">{t.pricing.title}</h2><p className="text-gray-400">{t.pricing.subtitle}</p></div><div className="flex items-center justify-center gap-4 bg-slate-900/80 p-1.5 rounded-full border border-white/10 mb-12 w-fit mx-auto relative z-10"><button onClick={() => setBillingCycle('monthly')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 ${billingCycle === 'monthly' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}>{lang === 'tr' ? 'Aylık' : 'Monthly'}</button><button onClick={() => setBillingCycle('annual')} className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${billingCycle === 'annual' ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}>{lang === 'tr' ? 'Yıllık' : 'Annual'}<span className={`text-[10px] bg-white text-orange-600 px-1.5 rounded-sm font-extrabold ${billingCycle === 'annual' ? 'opacity-100' : 'opacity-70 bg-gray-700 text-white'}`}>-20%</span></button></div><div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"><PricingCard title={t.pricing.starter.title} target={t.pricing.starter.target} price={getPrice('starter')} originalPrice={getOriginalPrice('starter')} billingNote={getBillingNote('starter')} features={t.pricing.starter.features} buttonText={t.pricing.starter.btn} onButtonClick={handleOpenLogin} /><PricingCard title={t.pricing.growth.title} target={t.pricing.growth.target} price={getPrice('growth')} originalPrice={getOriginalPrice('growth')} billingNote={getBillingNote('growth')} isPopular features={t.pricing.growth.features} buttonText={t.pricing.growth.btn} onButtonClick={handleOpenLogin} /><PricingCard title={t.pricing.agency.title} target={t.pricing.agency.target} price={getPrice('agency')} originalPrice={getOriginalPrice('agency')} billingNote={getBillingNote('agency')} features={t.pricing.agency.features} buttonText={t.pricing.agency.btn} onButtonClick={handleOpenLogin} /></div></div></section>
+      {/* PRICING SECTION */}
+      <section id="pricing" className="py-24 relative z-10 bg-[#0d121f]">
+          <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-7xl">
+              <div className="text-center mb-10">
+                  <h2 className="text-3xl md:text-5xl font-bold mb-4">{t.pricing.title}</h2>
+                  <p className="text-gray-400">{t.pricing.subtitle}</p>
+              </div>
+              
+              <div className="flex items-center justify-center gap-4 bg-slate-900/80 p-1.5 rounded-full border border-white/10 mb-12 w-fit mx-auto relative z-10">
+                  <button 
+                    onClick={() => setBillingCycle('monthly')} 
+                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 ${billingCycle === 'monthly' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+                  >
+                      {lang === 'tr' ? 'Aylık' : 'Monthly'}
+                  </button>
+                  <button 
+                    onClick={() => setBillingCycle('annual')} 
+                    className={`px-6 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${billingCycle === 'annual' ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                  >
+                      {lang === 'tr' ? 'Yıllık' : 'Annual'}
+                      <span className={`text-[10px] bg-white text-orange-600 px-1.5 rounded-sm font-extrabold ${billingCycle === 'annual' ? 'opacity-100' : 'opacity-70 bg-gray-700 text-white'}`}>-20%</span>
+                  </button>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                  <PricingCard 
+                    title={t.pricing.starter.title} 
+                    target={t.pricing.starter.target} 
+                    price={getPrice('starter')} 
+                    originalPrice={getOriginalPrice('starter')} 
+                    billingNote={getBillingNote('starter')} 
+                    features={t.pricing.starter.features} 
+                    buttonText={t.pricing.starter.btn} 
+                    onButtonClick={handleOpenLogin} 
+                  />
+                  <PricingCard 
+                    title={t.pricing.growth.title} 
+                    target={t.pricing.growth.target} 
+                    price={getPrice('growth')} 
+                    originalPrice={getOriginalPrice('growth')} 
+                    billingNote={getBillingNote('growth')} 
+                    isPopular 
+                    features={t.pricing.growth.features} 
+                    buttonText={t.pricing.growth.btn} 
+                    onButtonClick={handleOpenLogin} 
+                  />
+                  <PricingCard 
+                    title={t.pricing.agency.title} 
+                    target={t.pricing.agency.target} 
+                    price={getPrice('agency')} 
+                    originalPrice={getOriginalPrice('agency')} 
+                    billingNote={getBillingNote('agency')} 
+                    features={t.pricing.agency.features} 
+                    buttonText={t.pricing.agency.btn} 
+                    onButtonClick={handleOpenLogin} 
+                  />
+              </div>
+          </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="py-24 relative z-10 bg-[#0B0F19]">
+          <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-3xl">
+              <div className="text-center mb-12">
+                  <h2 className="text-3xl font-bold mb-4">{t.faq.title}</h2>
+              </div>
+              <div className="space-y-4">
+                  {t.faq.items.map((item, i) => (
+                      <FAQItem key={i} question={item.q} answer={item.a} />
+                  ))}
+              </div>
+          </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-32 relative z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0B0F19] to-[#1a1f2e]"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-full bg-orange-600/10 blur-[100px] rounded-full"></div>
+          
+          <div className="container mx-auto px-6 text-center relative z-20">
+              <h2 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-white">{t.finalCta.title}</h2>
+              <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">{t.finalCta.subtitle}</p>
+              <button 
+                onClick={handleOpenLogin}
+                className="px-10 py-5 bg-white text-black font-bold text-xl rounded-full hover:scale-105 transition-transform shadow-[0_0_50px_rgba(255,255,255,0.3)]"
+              >
+                  {t.finalCta.btn}
+              </button>
+          </div>
+      </section>
 
       <Footer lang={lang} onOpenPolicy={handleOpenPolicy} />
 
