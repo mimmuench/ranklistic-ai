@@ -353,14 +353,16 @@ export default function App() {
 
   // --- NOT LOGGED IN -> LANDING PAGE ---
   if (!user) {
-    return (
-      <LandingPage 
-        onGetStarted={handleGoogleLogin}
-        onEmailPasswordLogin={handleEmailPasswordLogin}
-        onGoogleLogin={handleGoogleLogin}
-      />
-    );
-  }
+  return (
+    <LandingPage 
+      onGetStarted={handleGoogleLogin}
+      onLoginSuccess={(u) => { 
+        setUser(u.user || u); 
+        if (u.profile) setUserProfile(u.profile);
+      }}
+    />
+  );
+}
 
   // --- LOGGED IN -> DASHBOARD ---
   return (
@@ -391,25 +393,25 @@ export default function App() {
           <div className="max-w-7xl mx-auto">
             
             {activeTab === 'dashboard' && (
-              <Dashboard 
-                lang={lang}
-                userCredits={userProfile?.credits || 0}
-                userPlan={userProfile?.plan || 'free'}
-                onNewAudit={() => setActiveTab('audit')}
-                onNewListing={() => setActiveTab('optimizer')}
-                onNewMarket={() => setActiveTab('market')}
-                onGoToLaunchpad={() => setActiveTab('launchpad')}
-                onGoToReelGen={() => setActiveTab('reelGen')}
-                onGoToTrendRadar={() => setActiveTab('trendRadar')}
-                onLoadReport={(record) => {
-                  if (record.type === 'audit') {
-                    setAuditResult(record.data);
-                    setActiveTab('audit');
-                  }
-                }}
-                onOpenSubscription={() => setShowSubscriptionModal(true)}
-              />
-            )}
+			  <Dashboard 
+				lang={lang} 
+				userCredits={userProfile?.credits || 0} 
+				userPlan={userProfile?.plan || 'free'} 
+				onNewAudit={() => setActiveTab('audit')} 
+				onNewListing={() => setActiveTab('optimizer')} 
+				onNewMarket={() => setActiveTab('market')} 
+				onGoToLaunchpad={() => setActiveTab('launchpad')} 
+				onGoToReelGen={() => setActiveTab('reelGen')} 
+				onGoToTrendRadar={() => setActiveTab('trendRadar')} 
+				onLoadReport={(record) => {
+				  if (record.type === 'audit') {
+					setAuditResult(record.data);
+					setActiveTab('audit');
+				  }
+				}} 
+				onOpenSubscription={() => setShowSubscriptionModal(true)} 
+			  />
+			)}
 
             <div className={isVisible('audit')}>
               {!auditResult ? (
