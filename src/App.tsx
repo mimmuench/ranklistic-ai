@@ -19,6 +19,7 @@ import { LandingPage } from './components/LandingPage';
 import { ChatModal } from './components/ChatModal';
 import { runEtsyAudit, getChatResponse } from './services/geminiService';
 import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessage } from './types';
+import { BrowserRouter } from 'react-router-dom';
 
 // --- SUPABASE CONNECTION ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -366,122 +367,134 @@ export default function App() {
 
   // --- LOGGED IN -> DASHBOARD ---
   return (
-    <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={(t) => setActiveTab(t)} 
-        lang={lang} 
-        credits={userProfile?.credits || 0} 
-        userPlan={userProfile?.plan || 'free'}
-        userEmail={user.email}
-        onOpenSubscription={() => setShowSubscriptionModal(true)}
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        onSignOut={handleSignOut}
-        onOpenSettings={() => setShowSettingsModal(true)}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <Header 
-          credits={userProfile?.credits || 0} 
-          lang={lang} 
-          onOpenSubscription={() => setShowSubscriptionModal(true)}
-          userPlan={userProfile?.plan || 'free'}
+    <BrowserRouter>
+      {!user ? (
+        <LandingPage 
+          onGetStarted={handleGoogleLogin}
+          onLoginSuccess={(u) => { 
+            setUser(u.user || u); 
+            if (u.profile) setUserProfile(u.profile);
+          }}
         />
+      ) : (
+        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
+          <Sidebar 
+            activeTab={activeTab} 
+            setActiveTab={(t) => setActiveTab(t)} 
+            lang={lang} 
+            credits={userProfile?.credits || 0} 
+            userPlan={userProfile?.plan || 'free'}
+            userEmail={user.email}
+            onOpenSubscription={() => setShowSubscriptionModal(true)}
+            isMobileOpen={isMobileOpen}
+            setIsMobileOpen={setIsMobileOpen}
+            onSignOut={handleSignOut}
+            onOpenSettings={() => setShowSettingsModal(true)}
+          />
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-          <div className="max-w-7xl mx-auto">
-            
-            {activeTab === 'dashboard' && (
-			  <Dashboard 
-				lang={lang} 
-				userCredits={userProfile?.credits || 0} 
-				userPlan={userProfile?.plan || 'free'} 
-				onNewAudit={() => setActiveTab('audit')} 
-				onNewListing={() => setActiveTab('optimizer')} 
-				onNewMarket={() => setActiveTab('market')} 
-				onGoToLaunchpad={() => setActiveTab('launchpad')} 
-				onGoToReelGen={() => setActiveTab('reelGen')} 
-				onGoToTrendRadar={() => setActiveTab('trendRadar')} 
-				onLoadReport={(record) => {
-				  if (record.type === 'audit') {
-					setAuditResult(record.data);
-					setActiveTab('audit');
-				  }
-				}} 
-				onOpenSubscription={() => setShowSubscriptionModal(true)} 
-			  />
-			)}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+            <Header 
+              credits={userProfile?.credits || 0} 
+              lang={lang} 
+              onOpenSubscription={() => setShowSubscriptionModal(true)}
+              userPlan={userProfile?.plan || 'free'}
+            />
 
-            <div className={isVisible('audit')}>
-              {!auditResult ? (
-                <>
-                  <div className="text-center mb-10">
-                    <h2 className="text-3xl font-bold text-white mb-2">
-                      {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
-                    </h2>
-                    <p className="text-gray-400">
-                      {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
-                    </p>
-                  </div>
-                  <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
-                </>
-              ) : (
-                <div>
-                  <button 
-                    onClick={() => setAuditResult(null)} 
-                    className="mb-4 text-sm text-gray-400 hover:text-white"
-                  >
-                    &larr; Back to Audit Form
-                  </button>
-                  <AuditResult 
-                    result={auditResult} 
-                    onStartChat={startAuditChat} 
-                    shopUrl={auditResult.shopName || "Your Shop"}
-                    userPlan={userProfile?.plan || 'free'}
-                    brandSettings={userSettings}
+            <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+              <div className="max-w-7xl mx-auto">
+                
+                {activeTab === 'dashboard' && (
+                  <Dashboard 
+                    lang={lang} 
+                    userCredits={userProfile?.credits || 0} 
+                    userPlan={userProfile?.plan || 'free'} 
+                    onNewAudit={() => setActiveTab('audit')} 
+                    onNewListing={() => setActiveTab('optimizer')} 
+                    onNewMarket={() => setActiveTab('market')} 
+                    onGoToLaunchpad={() => setActiveTab('launchpad')} 
+                    onGoToReelGen={() => setActiveTab('reelGen')} 
+                    onGoToTrendRadar={() => setActiveTab('trendRadar')} 
+                    onLoadReport={(record) => {
+                      if (record.type === 'audit') {
+                        setAuditResult(record.data);
+                        setActiveTab('audit');
+                      }
+                    }} 
+                    onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                  />
+                )}
+
+                <div className={isVisible('audit')}>
+                  {!auditResult ? (
+                    <>
+                      <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-white mb-2">
+                          {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
+                        </h2>
+                        <p className="text-gray-400">
+                          {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
+                        </p>
+                      </div>
+                      <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
+                    </>
+                  ) : (
+                    <div>
+                      <button 
+                        onClick={() => setAuditResult(null)} 
+                        className="mb-4 text-sm text-gray-400 hover:text-white"
+                      >
+                        &larr; Back to Audit Form
+                      </button>
+                      <AuditResult 
+                        result={auditResult} 
+                        onStartChat={startAuditChat} 
+                        shopUrl={auditResult.shopName || "Your Shop"}
+                        userPlan={userProfile?.plan || 'free'}
+                        brandSettings={userSettings}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className={isVisible('optimizer')}>
+                  <ListingOptimizer initialData={optimizerData} />
+                </div>
+                <div className={isVisible('competitor')}>
+                  <CompetitorAnalyzer />
+                </div>
+                <div className={isVisible('market')}>
+                  <GlobalMarketAnalyzer lang={lang} />
+                </div>
+                <div className={isVisible('keywords')}>
+                  <KeywordResearch lang={lang} />
+                </div>
+                <div className={isVisible('launchpad')}>
+                  <ProductLaunchpad 
+                    auditResult={auditResult} 
+                    onUseForListing={handleOptimizerTransfer} 
                   />
                 </div>
-              )}
-            </div>
+                <div className={isVisible('trendRadar')}>
+                  <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
+                </div>
+                <div className={isVisible('newShop')}>
+                  <NewShopStarter lang={lang} />
+                </div>
+                <div className={isVisible('reelGen')}>
+                  <ReelGen 
+                    lang={lang} 
+                    userCredits={userProfile?.credits || 0} 
+                    userPlan={userProfile?.plan || 'free'} 
+                    onDeductCredit={useCredit} 
+                    onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                  />
+                </div>
 
-            <div className={isVisible('optimizer')}>
-              <ListingOptimizer initialData={optimizerData} />
-            </div>
-            <div className={isVisible('competitor')}>
-              <CompetitorAnalyzer />
-            </div>
-            <div className={isVisible('market')}>
-              <GlobalMarketAnalyzer lang={lang} />
-            </div>
-            <div className={isVisible('keywords')}>
-              <KeywordResearch lang={lang} />
-            </div>
-            <div className={isVisible('launchpad')}>
-              <ProductLaunchpad 
-                auditResult={auditResult} 
-                onUseForListing={handleOptimizerTransfer} 
-              />
-            </div>
-            <div className={isVisible('trendRadar')}>
-              <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
-            </div>
-            <div className={isVisible('newShop')}>
-              <NewShopStarter lang={lang} />
-            </div>
-            <div className={isVisible('reelGen')}>
-              <ReelGen 
-                lang={lang} 
-                userCredits={userProfile?.credits || 0} 
-                userPlan={userProfile?.plan || 'free'} 
-                onDeductCredit={useCredit} 
-                onOpenSubscription={() => setShowSubscriptionModal(true)} 
-              />
-            </div>
-
+              </div>
+            </main>
           </div>
-        </main>
-      </div>
+        </div>
+      )}
 
       <SubscriptionModal 
         isOpen={showSubscriptionModal} 
@@ -511,6 +524,5 @@ export default function App() {
           isLoading={isChatLoading} 
         />
       )}
-    </div>
+    </BrowserRouter>
   );
-}
