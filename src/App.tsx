@@ -358,7 +358,8 @@ export default function App() {
   // --- LOGGED IN -> DASHBOARD ---
   return (
     <BrowserRouter>
-      <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-sm">
+      {/* Yazı boyutunu genel olarak text-[13px] yaparak daha profesyonel bir zemin kurduk */}
+      <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-[13px] antialiased">
         <Sidebar 
           activeTab={activeTab} 
           setActiveTab={(t) => setActiveTab(t)} 
@@ -381,8 +382,10 @@ export default function App() {
             userPlan={userProfile?.plan || 'free'}
           />
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-[#0B0F19]">
-            <div className="max-w-[1400px] mx-auto w-full">
+          {/* p-4 md:p-6 -> p-2 md:p-4 yaparak ana alanı genişlettik */}
+          <main className="flex-1 overflow-y-auto p-2 md:p-4 scroll-smooth bg-[#0B0F19]">
+            {/* max-w-[1400px] -> max-w-[1200px] yaparak içeriğin yanlara aşırı yayılmasını önledik */}
+            <div className="max-w-[1200px] mx-auto w-full space-y-4"> {/* space-y eklendi */}
               
               <div className={isVisible('dashboard')}>
                 <Dashboard 
@@ -408,11 +411,11 @@ export default function App() {
               <div className={isVisible('audit')}>
                 {!auditResult ? (
                   <>
-                    <div className="text-center mb-10">
-                      <h2 className="text-2xl font-bold text-white mb-2">
+                    <div className="text-center mb-6"> {/* mb-10 -> mb-6 */}
+                      <h2 className="text-xl font-bold text-white mb-1"> {/* text-2xl -> text-xl */}
                         {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
                       </h2>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-400 text-xs"> {/* text-sm -> text-xs */}
                         {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
                       </p>
                     </div>
@@ -422,7 +425,7 @@ export default function App() {
                   <div>
                     <button 
                       onClick={() => setAuditResult(null)} 
-                      className="mb-4 text-sm text-gray-400 hover:text-white"
+                      className="mb-3 text-[12px] text-gray-400 hover:text-white" // mb-4 -> mb-3
                     >
                       &larr; Back to Audit Form
                     </button>
