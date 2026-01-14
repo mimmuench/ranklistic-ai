@@ -20,6 +20,7 @@ import { ChatModal } from './components/ChatModal';
 import { runEtsyAudit, getChatResponse } from './services/geminiService';
 import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessage } from './types';
 import { BrowserRouter } from 'react-router-dom';
+import OnboardingTour from './components/OnboardingTour';
 
 // --- SUPABASE CONNECTION ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -47,7 +48,20 @@ export default function App() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    // Kullanıcı daha önce turu tamamlamadıysa göster
+    const hasSeenTour = localStorage.getItem('ranklistic_onboarded');
+    if (!hasSeenTour) {
+      setShowTour(true);
+    }
+  }, []);
+
+  const handleTourComplete = () => {
+    setShowTour(false);
+    localStorage.setItem('ranklistic_onboarded', 'true');
+  };
   // Modals & Data
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -358,6 +372,9 @@ export default function App() {
   // --- LOGGED IN -> DASHBOARD ---
   return (
     <BrowserRouter>
+	  {/* BURAYA EKLE: Onboarding Turu en üstte durmalı */}
+      {showTour && <OnboardingTour onComplete={handleTourComplete} />}
+	
       {/* Yazı boyutunu genel olarak text-[13px] yaparak daha profesyonel bir zemin kurduk */}
       <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-[13px] antialiased">
         <Sidebar 

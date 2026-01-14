@@ -417,34 +417,75 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
                              <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm">1</div>
                              Configure AI Strategy
                          </h3>
-                        
-                        {/* NICHE SELECTOR */}
+                        							
+						{/* NICHE SELECTOR */}
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-300 mb-2">Product Category</label>
-                            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                {lang === 'tr' ? 'Ürün Kategorisi' : 'Product Category'}
+                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                                 {[
                                     { id: 'wall-art', label: 'Wall Art', icon: '🖼️' },
+                                    { id: 'metal-art', label: 'Metal Art', icon: '🏗️' },
                                     { id: 'apparel', label: 'Apparel', icon: '👕' },
                                     { id: 'jewelry', label: 'Jewelry', icon: '💍' },
                                     { id: 'digital', label: 'Digital', icon: '💻' },
                                     { id: 'general', label: 'General', icon: '📦' },
-                                    { id: 'mundo_admin', label: 'Mundo', icon: '🏗️', special: true },
+                                    { id: 'home-decor', label: 'Home Decor', icon: '🏠' },
                                     { id: 'custom', label: 'Custom', icon: '✨' }
                                 ].map((cat) => (
                                     <button
                                         key={cat.id}
                                         onClick={() => setSelectedNicheKey(cat.id)}
-                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border transition-all ${
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
                                             selectedNicheKey === cat.id 
-                                            ? cat.special ? 'bg-red-900/40 border-red-500 text-white' : 'bg-orange-600/20 border-orange-500 text-white' 
-                                            : 'bg-gray-900 border-gray-600 text-gray-400 hover:bg-gray-800'
+                                            ? 'bg-orange-600/20 border-orange-500 text-white shadow-lg shadow-orange-900/20' 
+                                            : 'bg-gray-900 border-gray-700 text-gray-500 hover:bg-gray-800 hover:text-gray-300'
                                         }`}
                                     >
                                         <span className="text-xl mb-1">{cat.icon}</span>
-                                        <span className="text-[10px] font-bold text-center">{cat.label}</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-tighter text-center">{cat.label}</span>
                                     </button>
                                 ))}
                             </div>
+                        
+							{/* TEXTAREA AREA */}
+							<div className="space-y-2 mt-6">
+								<label htmlFor="description" className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+									{lang === 'tr' ? 'Ürününüzü Tarif Edin' : 'Describe Your Product'}
+								</label>
+								<textarea 
+									id="description" 
+									value={description} 
+									onChange={e => setDescription(e.target.value)} 
+									rows={4} 
+									className="w-full p-3 bg-gray-900 border border-gray-700 rounded-xl focus:ring-2 focus:ring-orange-500 text-sm text-gray-300 outline-none transition-all" 
+									placeholder={lang === 'tr' 
+										? "Ürününüzle ilgili bir iki spesifik anahtar kelime giriniz (Örn: 'geometrik geyik', 'minimalist metal tablo'). AI bu detayları SEO stratejisine dahil eder." 
+										: "Enter a few specific keywords to describe your product (e.g., 'geometric deer', 'minimalist metal art'). AI will use these for the SEO strategy."}
+								/>
+							</div>
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+							
+			
+							
                              {/* CUSTOM NICHE INPUT */}
                              {selectedNicheKey === 'custom' && (
                                 <div className="mt-4 animate-fade-in text-left">
