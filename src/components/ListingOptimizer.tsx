@@ -184,7 +184,10 @@ const OptimizerChat: React.FC<{
 
 
 export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData }) => {
-    // Mode Selection: 'image' or 'text'
+    // ListingOptimizer.tsx dosyasının içine gir ve bunu ekle:
+	const lang = 'en';
+	
+	// Mode Selection: 'image' or 'text'
     const [generationMode, setGenerationMode] = useState<'image' | 'text'>('image');
 
     const [template, setTemplate] = useState<string>('');
