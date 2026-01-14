@@ -105,17 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-slate-400 text-sm max-w-xl leading-relaxed"> {/* text-lg -> text-sm, max-w-2xl -> max-w-xl */}
                         {t.subtitle}
                     </p>
-                </div>
-                {/* Credit Display */}
-                <div className="hidden md:flex items-center gap-3 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-3 shadow-xl"> {/* gap-4 -> gap-3, p-4 -> p-3, rounded-2xl -> rounded-xl */}
-                    <div className="text-right">
-                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Available Credits</div> {/* text-xs -> text-[10px] */}
-                        <div className="text-xl font-black text-white">{userCredits}</div> {/* text-2xl -> text-xl */}
-                    </div>
-                    <button onClick={onOpenSubscription} className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-orange-500/20"> {/* w-10 h-10 -> w-8 h-8, rounded-xl -> rounded-lg */}
-                        <span className="text-white font-bold text-lg">+</span> {/* text-xl -> text-lg */}
-                    </button>
-                </div>
+                </div>               
             </div>
 			
             {/* 2. KILLER FEATURES (The "Wow" Factor) */}
