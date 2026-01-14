@@ -9,7 +9,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
   const [tourStep, setTourStep] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null);
-
+  const lang = localStorage.getItem('ranklistic_lang') || 'en'; // Sistem dilini çek veya varsayılan en yap
   const tourSteps = [
     {
       icon: Sparkles,
