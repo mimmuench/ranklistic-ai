@@ -13,6 +13,7 @@ interface DashboardProps {
     userCredits: number;
     userPlan?: string;
     onOpenSubscription?: () => void;
+	setActiveTab: (tab: any) => void;
     // New handlers for specific tools
     onGoToLaunchpad?: () => void;
     onGoToReelGen?: () => void;
@@ -21,7 +22,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
     lang, onLoadReport, onNewAudit, onNewMarket, onNewListing, userCredits, userPlan, onOpenSubscription,
-    onGoToLaunchpad, onGoToReelGen, onGoToTrendRadar
+    setActiveTab, onGoToLaunchpad, onGoToReelGen, onGoToTrendRadar
 }) => {
     const [history, setHistory] = useState<SavedRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);

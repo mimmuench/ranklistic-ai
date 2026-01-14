@@ -408,7 +408,8 @@ export default function App() {
                 <Dashboard 
                   lang={lang} 
                   userCredits={userProfile?.credits || 0} 
-                  userPlan={userProfile?.plan || 'free'} 
+                  userPlan={userProfile?.plan || 'free'}
+				  setActiveTab={setActiveTab}
                   onNewAudit={() => setActiveTab('audit')} 
                   onNewListing={() => setActiveTab('optimizer')} 
                   onNewMarket={() => setActiveTab('market')} 
