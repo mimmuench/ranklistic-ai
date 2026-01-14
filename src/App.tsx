@@ -71,15 +71,16 @@ export default function App() {
       
       if (error) {
         console.error('Profile fetch error:', error);
+        setLoading(false);
         return;
       }
       
       if (profile) {
         setUserProfile(profile);
       }
-      setLoading(false);
     } catch (error) {
       console.error('Profile fetch error:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -87,45 +88,62 @@ export default function App() {
   // --- AUTH CONTROL ---
   useEffect(() => {
     let mounted = true;
+    let authSubscription: any = null;
 
-    const checkInitialSession = async () => {
+    const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          if (session?.user) {
-            setUser(session.user);
-            await fetchUserProfile(session.user.id);
-          } else {
-            setLoading(false);
-          }
+        // 1. İlk session kontrolü
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setLoading(false);
+          return;
         }
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchUserProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+
+        // 2. Auth state değişikliklerini dinle
+        const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+          if (!mounted) return;
+
+          console.log('Auth event:', event);
+
+          if (event === 'SIGNED_IN' && newSession?.user) {
+            setUser(newSession.user);
+            await fetchUserProfile(newSession.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setUserProfile(null);
+          } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+            setUser(newSession.user);
+          }
+          
+          setLoading(false);
+        });
+
+        authSubscription = data.subscription;
+
       } catch (error) {
-        console.error('Initial session check error:', error);
+        console.error('Auth init error:', error);
         if (mounted) setLoading(false);
       }
     };
 
-    checkInitialSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        await fetchUserProfile(session.user.id);
-        setLoading(false);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setUserProfile(null);
-        setLoading(false);
-      } else if (event === 'INITIAL_SESSION') {
-        setLoading(false);
-      }
-    });
+    initAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
   }, []);
 
