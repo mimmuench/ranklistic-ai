@@ -516,17 +516,25 @@ export const getMarketAnalysisChatResponse = async (
 };
 
 export const runKeywordAnalysis = async (seedKeyword: string, lang: 'en' | 'tr'): Promise<string> => {
-    const prompt = `Analyze SEO keywords for Etsy niche: "${seedKeyword}".
+    // 1. GÜNCELLEME: Prompt'u sertleştirdik ve 50+ kelime zorunluluğu getirdik.
+    const prompt = `
+    Role: Advanced SEO Data Analyst for Etsy.
+    Task: Deep keyword research for niche: "${seedKeyword}".
     Language: ${lang}
+    
+    CRITICAL INSTRUCTION: You MUST provide a list of AT LEAST 50 unique keywords. 
+    Do not stop at 10 or 20. I need a comprehensive list covering long-tail variations, questions, and niche tags.
+    If the list is short, the analysis fails. Generate 50+ items.
+
     Find high volume, low competition keywords. Look for rising trends.
     
     Return JSON:
     {
         "seedKeyword": "${seedKeyword}",
-        "summary": "...",
+        "summary": "Detailed strategic summary...",
         "keywords": [
             {
-                "keyword": "long tail keyword",
+                "keyword": "long tail keyword example",
                 "volume": 85,
                 "volumeLabel": "High",
                 "competition": "Low",
@@ -534,24 +542,31 @@ export const runKeywordAnalysis = async (seedKeyword: string, lang: 'en' | 'tr')
                 "cpcHint": "High",
                 "intent": "Purchase"
             },
-            ...
+            ... (Ensure 50+ items here)
         ],
         "risingConcepts": [
-            { "concept": "...", "growthFactor": "+200%", "whyTrending": "..." }
+            { "concept": "Concept 1", "growthFactor": "+200%", "whyTrending": "..." },
+            { "concept": "Concept 2", "growthFactor": "+150%", "whyTrending": "..." },
+            { "concept": "Concept 3", "growthFactor": "+120%", "whyTrending": "..." },
+            { "concept": "Concept 4", "growthFactor": "+90%", "whyTrending": "..." }
         ],
         "platformInsights": [
-            { "platform": "Pinterest", "focus": "Aesthetic", "topTags": ["..."], "advice": "..." },
-            { "platform": "Etsy", "focus": "Transactional", "topTags": ["..."], "advice": "..." }
+            { "platform": "Pinterest", "focus": "Aesthetic", "topTags": ["tag1", "tag2", "tag3"], "advice": "..." },
+            { "platform": "Etsy", "focus": "Transactional", "topTags": ["tag1", "tag2", "tag3"], "advice": "..." },
+            { "platform": "TikTok", "focus": "Viral", "topTags": ["tag1", "tag2", "tag3"], "advice": "..." }
         ]
     }
     `;
     
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-preview", // Kullanmaya devam edebilirsin
         contents: prompt,
         config: { 
             responseMimeType: "application/json",
-            tools: [{ googleSearch: {} }] 
+            tools: [{ googleSearch: {} }],
+            // 2. GÜNCELLEME: Kelime listesi uzun olacağı için limiti artırdık
+            maxOutputTokens: 8192, 
+            temperature: 0.7 
         }
     });
 
