@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SearchIcon, GlobeIcon, RocketIcon, TrashIcon, HistoryIcon, GeneratorIcon, ScaleIcon, CheckCircleIcon, FireIcon, VideoIcon, SparklesIcon, CameraIcon } from './icons';
-import { supabaseMock } from '../services/supabaseService';
+import { supabase } from '../services/supabaseService';
 import type { SavedRecord } from '../types';
 
 interface DashboardProps {
@@ -31,23 +31,52 @@ export const Dashboard: React.FC<DashboardProps> = ({
     useEffect(() => {
         const fetchHistory = async () => {
             setIsLoading(true);
-            const data = await supabaseMock.db.getHistory();
-            setHistory(data);
-            setIsLoading(false);
+            try {
+                // 1. Giriş yapmış kullanıcıyı al
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    // 2. Gerçek veritabanından çek (saved_reports tablosu)
+                    const { data, error } = await supabase
+                        .from('saved_reports')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false });
+
+                    if (!error && data) {
+                        setHistory(data);
+                    } else if (error) {
+                        console.error("Veri çekme hatası:", error.message);
+                    }
+                }
+            } catch (err) {
+                console.error("Dashboard yüklenirken hata oluştu:", err);
+            } finally {
+                setIsLoading(false);
+            }
         };
         fetchHistory();
     }, []);
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        // Optimistic update
+        
+        // Kullanıcıya anlık tepki ver (Optimistic update)
         setHistory(prev => prev.filter(h => h.id !== id));
         
-        // DB call
-        const success = await supabaseMock.db.deleteReport(id);
-        if (!success) {
-            // Revert if failed (optional, or just alert)
-            alert("Failed to delete report.");
+        try {
+            // Veritabanından gerçekten sil
+            const { error } = await supabase
+                .from('saved_reports')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert("Silme işlemi başarısız oldu.");
+                // Hata olursa listeyi yenilemek için sayfayı reload edebilir veya fetchHistory'yi tekrar çağırabilirsin
+            }
+        } catch (err) {
+            console.error("Silme hatası:", err);
         }
     };
 

@@ -1,30 +1,24 @@
 
-import { supabaseMock } from './supabaseService';
-
-// --- GÜVENLİ ÖDEME SİSTEMİ (STRIPE PAYMENT LINKS) ---
-// ADIM 1: Stripe Dashboard'a git (https://dashboard.stripe.com/test/payment-links)
-// ADIM 2: Her paket (Starter, Growth, Agency) için hem Aylık hem Yıllık link oluştur.
-// ADIM 3: Linkleri aşağıya yapıştır.
-// ADIM 4: 'test_' kısmını canlıya geçerken gerçek linklerle değiştirmeyi unutma.
+import { supabase } from './supabaseService';
 
 const STRIPE_LINKS = {
     starter: {
-        monthly: 'https://buy.stripe.com/test_starter_monthly', // ÖRN: https://buy.stripe.com/cN2...
-        annual: 'https://buy.stripe.com/test_starter_annual'
+        monthly: 'https://buy.stripe.com/eVqdR95X0bUWexYdhh9EI00', // ÖRN: https://buy.stripe.com/cN2...
+        annual: 'https://buy.stripe.com/9B6aEXfxA6ACcpQdhh9EI01'
     },
     growth: {
-        monthly: 'https://buy.stripe.com/test_growth_monthly',
-        annual: 'https://buy.stripe.com/test_growth_annual'
+        monthly: 'https://buy.stripe.com/3cI00jadg4su2Pga559EI02',
+        annual: 'https://buy.stripe.com/7sYaEXclogbcexYell9EI03'
     },
     agency: {
-        monthly: 'https://buy.stripe.com/test_agency_monthly',
-        annual: 'https://buy.stripe.com/test_agency_annual'
+        monthly: 'https://buy.stripe.com/5kQ8wP99c5wycpQ1yz9EI04',
+        annual: 'https://buy.stripe.com/dRm28r7144su9dEell9EI05'
     },
     // NEW: Credit Top-Ups (One-time payments)
     credits: {
-        pack_50: 'https://buy.stripe.com/test_credit_50',
-        pack_200: 'https://buy.stripe.com/test_credit_200',
-        pack_500: 'https://buy.stripe.com/test_credit_500'
+        pack_50: 'https://buy.stripe.com/8x26oHfxA7EGgG6a559EI06',
+        pack_200: 'https://buy.stripe.com/14A5kDclo6ACfC2a559EI07',
+        pack_500: 'https://buy.stripe.com/14A8wP3OSbUWdtUell9EI08'
     }
 };
 
