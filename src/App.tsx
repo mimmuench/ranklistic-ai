@@ -25,7 +25,6 @@ import { BrowserRouter } from 'react-router-dom';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Tek bir instance oluşturup dışarı aktarıyoruz
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
@@ -52,21 +51,43 @@ export default function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>({ language: 'en', notifications: true });
 
+  // --- FETCH USER PROFILE FUNCTION ---
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Profile fetch error:', error);
+        return;
+      }
+      
+      if (profile) {
+        setUserProfile(profile);
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Profile fetch error:', error);
+      setLoading(false);
+    }
+  };
+
   // --- AUTH CONTROL ---
   useEffect(() => {
     let mounted = true;
 
-    // 1. İlk açılışta mevcut oturumu kontrol et
     const checkInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (mounted) {
           if (session?.user) {
             setUser(session.user);
-            // Profil çekme işlemini ayırdık (daha hızlı yükleme için)
-            fetchUserProfile(session.user.id);
+            await fetchUserProfile(session.user.id);
           } else {
-            setLoading(false); // Kullanıcı yoksa loading'i hemen kapat
+            setLoading(false);
           }
         }
       } catch (error) {
@@ -77,7 +98,6 @@ export default function App() {
 
     checkInitialSession();
 
-    // 2. Oturum değişikliklerini (Login, Logout, Token Refresh) CANLI dinle
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
@@ -90,13 +110,13 @@ export default function App() {
         setUserProfile(null);
         setLoading(false);
       } else if (event === 'INITIAL_SESSION') {
-        setLoading(false); // İlk yükleme bittiğinde loading'i kapat
+        setLoading(false);
       }
     });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe(); // Hafıza sızıntısını ve konsoldaki AbortError'ü engeller
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -217,16 +237,7 @@ export default function App() {
         return false;
       }
       
-      // Reload profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (profile) {
-        setUserProfile(profile);
-      }
+      await fetchUserProfile(user.id);
       
       return true;
     } catch (error) {
@@ -306,147 +317,137 @@ export default function App() {
 
   // --- NOT LOGGED IN -> LANDING PAGE ---
   if (!user) {
-  return (
-    <LandingPage 
-      onGetStarted={handleGoogleLogin}
-      onLoginSuccess={(u) => { 
-        setUser(u.user || u); 
-        if (u.profile) setUserProfile(u.profile);
-      }}
-    />
-  );
-}
+    return (
+      <LandingPage 
+        onGetStarted={handleGoogleLogin}
+        onLoginSuccess={(u) => { 
+          setUser(u.user || u); 
+          if (u.profile) setUserProfile(u.profile);
+        }}
+      />
+    );
+  }
 
   // --- LOGGED IN -> DASHBOARD ---
   return (
     <BrowserRouter>
-      {!user ? (
-        <LandingPage 
-          onGetStarted={handleGoogleLogin}
-          onLoginSuccess={(u) => { 
-            setUser(u.user || u); 
-            if (u.profile) setUserProfile(u.profile);
-          }}
+      <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-sm">
+        <Sidebar 
+          activeTab={activeTab} 
+          setActiveTab={(t) => setActiveTab(t)} 
+          lang={lang} 
+          credits={userProfile?.credits || 0} 
+          userPlan={userProfile?.plan || 'free'}
+          userEmail={user.email}
+          onOpenSubscription={() => setShowSubscriptionModal(true)}
+          isMobileOpen={isMobileOpen}
+          setIsMobileOpen={setIsMobileOpen}
+          onSignOut={handleSignOut}
+          onOpenSettings={() => setShowSettingsModal(true)}
         />
-      ) : (
-        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-sm">
-          <Sidebar 
-            activeTab={activeTab} 
-            setActiveTab={(t) => setActiveTab(t)} 
-            lang={lang} 
+
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+          <Header 
             credits={userProfile?.credits || 0} 
-            userPlan={userProfile?.plan || 'free'}
-            userEmail={user.email}
+            lang={lang} 
             onOpenSubscription={() => setShowSubscriptionModal(true)}
-            isMobileOpen={isMobileOpen}
-            setIsMobileOpen={setIsMobileOpen}
-            onSignOut={handleSignOut}
-            onOpenSettings={() => setShowSettingsModal(true)}
+            userPlan={userProfile?.plan || 'free'}
           />
 
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-            <Header 
-              credits={userProfile?.credits || 0} 
-              lang={lang} 
-              onOpenSubscription={() => setShowSubscriptionModal(true)}
-              userPlan={userProfile?.plan || 'free'}
-            />
-
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-[#0B0F19]">
-              <div className="max-w-[1400px] mx-auto w-full">
-                
-                {activeTab === 'dashboard' && (
-                  <Dashboard 
-                    lang={lang} 
-                    userCredits={userProfile?.credits || 0} 
-                    userPlan={userProfile?.plan || 'free'} 
-                    onNewAudit={() => setActiveTab('audit')} 
-                    onNewListing={() => setActiveTab('optimizer')} 
-                    onNewMarket={() => setActiveTab('market')} 
-                    onGoToLaunchpad={() => setActiveTab('launchpad')} 
-                    onGoToReelGen={() => setActiveTab('reelGen')} 
-                    onGoToTrendRadar={() => setActiveTab('trendRadar')} 
-                    onLoadReport={(record) => {
-                      if (record.type === 'audit') {
-                        setAuditResult(record.data);
-                        setActiveTab('audit');
-                      }
-                    }} 
-                    onOpenSubscription={() => setShowSubscriptionModal(true)} 
-                  />
-                )}
-
-                <div className={isVisible('audit')}>
-                  {!auditResult ? (
-                    <>
-                      <div className="text-center mb-10">
-                        <h2 className="text-2xl font-bold text-white mb-2">
-                          {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
-                        </h2>
-                        <p className="text-gray-400 text-sm">
-                          {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
-                        </p>
-                      </div>
-                      <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
-                    </>
-                  ) : (
-                    <div>
-                      <button 
-                        onClick={() => setAuditResult(null)} 
-                        className="mb-4 text-sm text-gray-400 hover:text-white"
-                      >
-                        &larr; Back to Audit Form
-                      </button>
-                      <AuditResult 
-                        result={auditResult} 
-                        onStartChat={startAuditChat} 
-                        shopUrl={auditResult.shopName || "Your Shop"}
-                        userPlan={userProfile?.plan || 'free'}
-                        brandSettings={userSettings}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className={isVisible('optimizer')}>
-                  <ListingOptimizer initialData={optimizerData} />
-                </div>
-                <div className={isVisible('competitor')}>
-                  <CompetitorAnalyzer />
-                </div>
-                <div className={isVisible('market')}>
-                  <GlobalMarketAnalyzer lang={lang} />
-                </div>
-                <div className={isVisible('keywords')}>
-                  <KeywordResearch lang={lang} />
-                </div>
-                <div className={isVisible('launchpad')}>
-                  <ProductLaunchpad 
-                    auditResult={auditResult} 
-                    onUseForListing={handleOptimizerTransfer} 
-                  />
-                </div>
-                <div className={isVisible('trendRadar')}>
-                  <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
-                </div>
-                <div className={isVisible('newShop')}>
-                  <NewShopStarter lang={lang} />
-                </div>
-                <div className={isVisible('reelGen')}>
-                  <ReelGen 
-                    lang={lang} 
-                    userCredits={userProfile?.credits || 0} 
-                    userPlan={userProfile?.plan || 'free'} 
-                    onDeductCredit={useCredit} 
-                    onOpenSubscription={() => setShowSubscriptionModal(true)} 
-                  />
-                </div>
-
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-[#0B0F19]">
+            <div className="max-w-[1400px] mx-auto w-full">
+              
+              <div className={isVisible('dashboard')}>
+                <Dashboard 
+                  lang={lang} 
+                  userCredits={userProfile?.credits || 0} 
+                  userPlan={userProfile?.plan || 'free'} 
+                  onNewAudit={() => setActiveTab('audit')} 
+                  onNewListing={() => setActiveTab('optimizer')} 
+                  onNewMarket={() => setActiveTab('market')} 
+                  onGoToLaunchpad={() => setActiveTab('launchpad')} 
+                  onGoToReelGen={() => setActiveTab('reelGen')} 
+                  onGoToTrendRadar={() => setActiveTab('trendRadar')} 
+                  onLoadReport={(record) => {
+                    if (record.type === 'audit') {
+                      setAuditResult(record.data);
+                      setActiveTab('audit');
+                    }
+                  }} 
+                  onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                />
               </div>
-            </main>
-          </div>
+
+              <div className={isVisible('audit')}>
+                {!auditResult ? (
+                  <>
+                    <div className="text-center mb-10">
+                      <h2 className="text-2xl font-bold text-white mb-2">
+                        {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
+                      </h2>
+                      <p className="text-gray-400 text-sm">
+                        {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
+                      </p>
+                    </div>
+                    <AuditForm onAudit={handleAudit} isLoading={isLoading} lang={lang} />
+                  </>
+                ) : (
+                  <div>
+                    <button 
+                      onClick={() => setAuditResult(null)} 
+                      className="mb-4 text-sm text-gray-400 hover:text-white"
+                    >
+                      &larr; Back to Audit Form
+                    </button>
+                    <AuditResult 
+                      result={auditResult} 
+                      onStartChat={startAuditChat} 
+                      shopUrl={auditResult.shopName || "Your Shop"}
+                      userPlan={userProfile?.plan || 'free'}
+                      brandSettings={userSettings}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={isVisible('optimizer')}>
+                <ListingOptimizer initialData={optimizerData} />
+              </div>
+              <div className={isVisible('competitor')}>
+                <CompetitorAnalyzer />
+              </div>
+              <div className={isVisible('market')}>
+                <GlobalMarketAnalyzer lang={lang} />
+              </div>
+              <div className={isVisible('keywords')}>
+                <KeywordResearch lang={lang} />
+              </div>
+              <div className={isVisible('launchpad')}>
+                <ProductLaunchpad 
+                  auditResult={auditResult} 
+                  onUseForListing={handleOptimizerTransfer} 
+                />
+              </div>
+              <div className={isVisible('trendRadar')}>
+                <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
+              </div>
+              <div className={isVisible('newShop')}>
+                <NewShopStarter lang={lang} />
+              </div>
+              <div className={isVisible('reelGen')}>
+                <ReelGen 
+                  lang={lang} 
+                  userCredits={userProfile?.credits || 0} 
+                  userPlan={userProfile?.plan || 'free'} 
+                  onDeductCredit={useCredit} 
+                  onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                />
+              </div>
+
+            </div>
+          </main>
         </div>
-      )}
+      </div>
 
       <SubscriptionModal 
         isOpen={showSubscriptionModal} 
