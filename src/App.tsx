@@ -24,7 +24,9 @@ import { BrowserRouter } from 'react-router-dom';
 // --- SUPABASE CONNECTION ---
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Multiple instances hatasını engellemek için singleton yapısı
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
 
