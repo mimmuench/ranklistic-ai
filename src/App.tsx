@@ -46,7 +46,7 @@ export default function App() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [auditResult, setAuditResult] = useState<AuditReport | null>(null);
   const [optimizerData, setOptimizerData] = useState<OptimizerTransferData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [selectedAuditItem, setSelectedAuditItem] = useState<AuditItem | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -238,7 +238,7 @@ export default function App() {
   // --- AUDIT ---
   const handleAudit = async (url: string, manualStats?: any) => {
     if (!await useCredit(1)) return;
-    setIsLoading(true);
+    setIsActionLoading(true);
     try {
       const resStr = await runEtsyAudit(url, manualStats);
       const res = JSON.parse(resStr);
@@ -248,10 +248,10 @@ export default function App() {
       console.error(e);
       alert("Audit failed. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsActionLoading(false);
     }
   };
-
+    
   // --- OPTIMIZER TRANSFER ---
   const handleOptimizerTransfer = (data: OptimizerTransferData) => {
     setOptimizerData(data);
