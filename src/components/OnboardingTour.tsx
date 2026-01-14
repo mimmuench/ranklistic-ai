@@ -9,7 +9,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
   const [tourStep, setTourStep] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null);
-  const lang = localStorage.getItem('ranklistic_lang') || 'en'; // Sistem dilini çek veya varsayılan en yap
+
   const tourSteps = [
     {
       icon: Sparkles,
@@ -26,7 +26,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
       title: "Your AI Arsenal",
       subtitle: "Every Tool You Need, One Click Away",
       description: "This sidebar is your mission control. Shop audits, listing optimizer, market analyzer—each tool is designed to give you an unfair advantage.",
-      highlight: "sidebar-nav", // Sidebar bileşenine id="sidebar-nav" eklemeyi unutma
+      highlight: "sidebar-nav",
       primaryAction: "Show Me More",
       gradient: "from-purple-500 to-pink-600",
       tip: "Pro tip: Start with a Shop Audit to uncover hidden opportunities!"
@@ -36,7 +36,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
       title: "Your Power Meter",
       subtitle: "Credits = Unlimited Possibilities",
       description: "Each AI analysis uses credits. Think of them as fuel for your growth engine. Your plan includes credits that refresh monthly—use them to dominate!",
-      highlight: "header-credits", // Header'daki kredi div'ine id="header-credits" ekle
+      highlight: "header-credits",
       primaryAction: "Got It",
       gradient: "from-orange-500 to-red-600",
       tip: "Higher tier plans = More credits + Premium features"
@@ -46,7 +46,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
       title: "Quick Actions = Quick Wins",
       subtitle: "Start Creating Viral Listings",
       description: "These shortcuts are your fast-pass to success. Generate optimized listings, analyze competitors, or spot trending products—all in seconds.",
-      highlight: "dashboard-quick-actions", // Dashboard grid div'ine id="dashboard-quick-actions" ekle
+      highlight: "dashboard-quick-actions",
       primaryAction: "Almost There",
       gradient: "from-green-500 to-teal-600",
       tip: "Use Product Launchpad to validate ideas before you invest!"
@@ -70,17 +70,24 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
   const currentStep = tourSteps[tourStep];
   const Icon = currentStep.icon;
 
-  // Spotlight (Vurgulama) takibi için useEffect
+  // ÖNEMLİ: Hedef elementin yerini hesaplar ve spotlight oluşturur
   useEffect(() => {
-    if (currentStep.highlight) {
-      const el = document.getElementById(currentStep.highlight);
-      if (el) {
-        setSpotlightRect(el.getBoundingClientRect());
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const updateSpotlight = () => {
+      if (currentStep.highlight) {
+        const el = document.getElementById(currentStep.highlight);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          setSpotlightRect(rect);
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      } else {
+        setSpotlightRect(null);
       }
-    } else {
-      setSpotlightRect(null);
-    }
+    };
+
+    updateSpotlight();
+    window.addEventListener('resize', updateSpotlight);
+    return () => window.removeEventListener('resize', updateSpotlight);
   }, [tourStep, currentStep.highlight]);
 
   const handleNext = () => {
@@ -100,9 +107,9 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-hidden">
-      {/* Dynamic Backdrop with Spotlight Effect */}
+      {/* 1. DİNAMİK BACKDROP (Sadece hedefi parlatır) */}
       <div 
-        className="absolute inset-0 bg-black/90 backdrop-blur-sm transition-all duration-700"
+        className="absolute inset-0 bg-black/85 backdrop-blur-sm transition-all duration-700 ease-in-out"
         style={{
           clipPath: spotlightRect 
             ? `polygon(0% 0%, 0% 100%, ${spotlightRect.left - 10}px 100%, ${spotlightRect.left - 10}px ${spotlightRect.top - 10}px, ${spotlightRect.right + 10}px ${spotlightRect.top - 10}px, ${spotlightRect.right + 10}px ${spotlightRect.bottom + 10}px, ${spotlightRect.left - 10}px ${spotlightRect.bottom + 10}px, ${spotlightRect.left - 10}px 100%, 100% 100%, 100% 0%)`
@@ -110,109 +117,92 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
         }}
       />
       
-      {/* Particles */}
-      {currentStep.particles && (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
-      )}
-
-      {/* Content Modal / Balon */}
+      {/* 2. DİNAMİK MODAL KONUMLANDIRMA */}
       <div 
         className={`relative w-full p-4 transition-all duration-500 ease-in-out ${
           spotlightRect ? 'max-w-md' : 'max-w-2xl'
         }`}
         style={spotlightRect ? {
           position: 'fixed',
-          top: spotlightRect.bottom + 40 > window.innerHeight ? 'auto' : `${spotlightRect.bottom + 20}px`,
-          bottom: spotlightRect.bottom + 40 > window.innerHeight ? '20px' : 'auto',
-          left: `${Math.min(window.innerWidth - 450, Math.max(20, spotlightRect.left))}px`
+          top: spotlightRect.bottom + 100 > window.innerHeight ? 'auto' : `${spotlightRect.bottom + 25}px`,
+          bottom: spotlightRect.bottom + 100 > window.innerHeight ? '30px' : 'auto',
+          left: `${Math.min(window.innerWidth - 450, Math.max(20, spotlightRect.left))}px`,
+          zIndex: 10001
         } : {}}
       >
         <div className={`absolute inset-0 bg-gradient-to-r ${currentStep.gradient} opacity-20 blur-3xl rounded-3xl animate-pulse`}></div>
         
-        <div className="relative bg-[#161B22] border border-gray-800 rounded-3xl shadow-2xl overflow-hidden">
+        <div className="relative bg-[#161B22] border border-gray-700 rounded-3xl shadow-2xl overflow-hidden border-t-4" style={{ borderColor: 'rgba(249, 115, 22, 0.5)' }}>
           <button onClick={handleComplete} className="absolute top-6 right-6 z-10 text-gray-500 hover:text-white transition-colors">
             <X className="w-5 h-5" />
           </button>
 
-          {/* Progress Bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800">
-            <div 
-              className={`h-full bg-gradient-to-r ${currentStep.gradient} transition-all duration-500 ease-out`}
-              style={{ width: `${((tourStep + 1) / tourSteps.length) * 100}%` }}
-            ></div>
-          </div>
-
-          <div className="p-8 md:p-12">
-            <div className="relative inline-block mb-6">
-              <div className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br ${currentStep.gradient} flex items-center justify-center shadow-lg`}>
-                <Icon className="w-8 h-8 text-white" />
+          <div className="p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${currentStep.gradient} flex items-center justify-center shadow-lg flex-shrink-0`}>
+                <Icon className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-white leading-tight uppercase tracking-tighter italic">
+                  {currentStep.title}
+                </h2>
+                <p className={`text-sm font-bold bg-gradient-to-r ${currentStep.gradient} bg-clip-text text-transparent`}>
+                  {currentStep.subtitle}
+                </p>
               </div>
             </div>
 
-            <div className="mb-8">
-              <h2 className={`font-black text-white mb-2 tracking-tight italic uppercase ${spotlightRect ? 'text-xl' : 'text-3xl md:text-4xl'}`}>
-                {currentStep.title}
-              </h2>
-              <p className={`font-semibold bg-gradient-to-r ${currentStep.gradient} bg-clip-text text-transparent mb-4 ${spotlightRect ? 'text-sm' : 'text-lg'}`}>
-                {currentStep.subtitle}
-              </p>
-              <p className={`text-gray-400 leading-relaxed ${spotlightRect ? 'text-sm' : 'text-base'}`}>
-                {currentStep.description}
-              </p>
-            </div>
+            <p className="text-gray-300 text-base leading-relaxed mb-6">
+              {currentStep.description}
+            </p>
 
             {currentStep.tip && (
-              <div className="mb-8 p-4 rounded-xl bg-yellow-500/5 border border-yellow-500/20">
-                <div className="flex items-start gap-3 text-sm">
-                  <Sparkles className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                  <p className="text-gray-300"><span className="text-yellow-500 font-bold">Pro Tip:</span> {currentStep.tip}</p>
-                </div>
+              <div className="mb-6 p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0" />
+                <p className="text-sm text-gray-300 italic"><span className="text-orange-500 font-bold not-italic">PRO TIP:</span> {currentStep.tip}</p>
               </div>
             )}
 
             {currentStep.stats && (
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-3 gap-3 mb-8">
                 {currentStep.stats.map((stat, idx) => (
-                  <div key={idx} className="text-center p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div key={idx} className="text-center p-3 rounded-xl bg-gray-900/50 border border-gray-800">
                     <div className={`text-xl font-black bg-gradient-to-r ${currentStep.gradient} bg-clip-text text-transparent`}>{stat.value}</div>
-                    <div className="text-[10px] text-gray-500 uppercase font-bold">{stat.label}</div>
+                    <div className="text-[9px] text-gray-500 uppercase font-black">{stat.label}</div>
                   </div>
                 ))}
               </div>
             )}
 
             <div className="flex items-center justify-between gap-4">
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 {tourSteps.map((_, idx) => (
-                  <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === tourStep ? `w-8 bg-gradient-to-r ${currentStep.gradient}` : 'w-2 bg-gray-700'}`} />
+                  <div key={idx} className={`h-1 rounded-full transition-all duration-300 ${idx === tourStep ? `w-8 bg-gradient-to-r ${currentStep.gradient}` : 'w-2 bg-gray-700'}`} />
                 ))}
               </div>
 
               <button
                 onClick={handleNext}
-                className={`px-8 py-4 bg-gradient-to-r ${currentStep.gradient} rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 whitespace-nowrap`}
+                className={`px-8 py-3 bg-gradient-to-r ${currentStep.gradient} rounded-xl font-black text-white text-xs uppercase tracking-widest transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2`}
               >
                 <span>{currentStep.primaryAction}</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Highlight Marker (Vurgulanan yerin altında zıplayan ok) */}
+      {/* 3. ZIPLAYAN OK GÖSTERGESİ */}
       {spotlightRect && (
         <div 
-          className="fixed z-[10001] animate-bounce pointer-events-none"
+          className="fixed z-[10002] animate-bounce pointer-events-none"
           style={{
-            top: spotlightRect.top - 40,
+            top: spotlightRect.top - 50,
             left: spotlightRect.left + (spotlightRect.width / 2) - 15
           }}
         >
-          <ChevronRight className="w-8 h-8 text-orange-500 rotate-90" />
+          <ChevronRight className="w-10 h-10 text-orange-500 rotate-90 drop-shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
         </div>
       )}
     </div>
