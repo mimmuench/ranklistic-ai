@@ -72,11 +72,47 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
     return () => window.removeEventListener('resize', update);
   }, [tourStep]);
 
+  const getCardPosition = () => {
+    if (!spotlightRect) {
+      return { position: 'relative' as const };
+    }
+
+    const cardWidth = 340;
+    const cardHeight = 240;
+    const padding = 20;
+    
+    let style: any = {
+      position: 'fixed' as const,
+    };
+
+    // Dikey pozisyon - alta sığıyorsa alta, yoksa üste, hiçbiri yoksa ortaya
+    if (spotlightRect.bottom + cardHeight + padding < window.innerHeight) {
+      style.top = spotlightRect.bottom + padding;
+    } else if (spotlightRect.top > cardHeight + padding) {
+      style.bottom = window.innerHeight - spotlightRect.top + padding;
+    } else {
+      style.top = '50%';
+      style.transform = 'translateY(-50%)';
+    }
+
+    // Yatay pozisyon - element sağdaysa sola, soldaysa sağa
+    const elementCenter = spotlightRect.left + spotlightRect.width / 2;
+    if (elementCenter > window.innerWidth / 2) {
+      // Element sağda, kartı sola yerleştir
+      style.left = Math.max(padding, spotlightRect.left - cardWidth - padding);
+    } else {
+      // Element solda, kartı sağa yerleştir
+      style.left = Math.min(window.innerWidth - cardWidth - padding, spotlightRect.right + padding);
+    }
+
+    return style;
+  };
+
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none font-sans">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto" />
 
-      {/* Spotlight Çerçevesi - Minimalist Turuncu */}
+      {/* Spotlight Çerçevesi */}
       {spotlightRect && (
         <div 
           className="absolute z-[10001] border-2 border-orange-500 rounded-xl shadow-[0_0_15px_rgba(249,115,22,0.5)] transition-all duration-500"
@@ -89,15 +125,10 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
         />
       )}
 
-      {/* Kompakt Bilgi Kartı */}
+      {/* Bilgi Kartı */}
       <div 
-        className="relative w-full max-w-[340px] bg-[#161B22] border border-orange-500/30 rounded-2xl shadow-2xl pointer-events-auto transition-all duration-500"
-        style={spotlightRect ? {
-          position: 'fixed',
-          top: spotlightRect.bottom + 20 > window.innerHeight ? 'auto' : spotlightRect.bottom + 20,
-          bottom: spotlightRect.bottom + 20 > window.innerHeight ? 20 : 'auto',
-          left: Math.min(window.innerWidth - 360, Math.max(20, spotlightRect.left))
-        } : {}}
+        className="w-full max-w-[340px] bg-[#161B22] border border-orange-500/30 rounded-2xl shadow-2xl pointer-events-auto transition-all duration-500"
+        style={getCardPosition()}
       >
         <div className="p-5">
           <div className="flex items-center gap-3 mb-4">
@@ -113,7 +144,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
             {currentStep.description}
           </p>
 
-          {/* Pro Tip - Sadeleştirilmiş */}
+          {/* Pro Tip */}
           {currentStep.tip && (
             <div className="mb-4 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 text-[11px] text-orange-200">
               <span className="font-bold text-orange-500 uppercase mr-1 italic">Pro Tip:</span> 
@@ -121,7 +152,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
             </div>
           )}
 
-          {/* Stats - Sadece final adımında */}
+          {/* Stats */}
           {currentStep.stats && (
             <div className="grid grid-cols-2 gap-2 mb-4">
               {currentStep.stats.map((s, i) => (
