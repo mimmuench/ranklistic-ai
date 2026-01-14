@@ -379,7 +379,7 @@ export default function App() {
           }}
         />
       ) : (
-        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans">
+        <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-sm">
           <Sidebar 
             activeTab={activeTab} 
             setActiveTab={(t) => setActiveTab(t)} 
@@ -402,8 +402,8 @@ export default function App() {
               userPlan={userProfile?.plan || 'free'}
             />
 
-            <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-              <div className="max-w-7xl mx-auto">
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 scroll-smooth bg-[#0B0F19]">
+              <div className="max-w-[1400px] mx-auto w-full">
                 
                 {activeTab === 'dashboard' && (
                   <Dashboard 
@@ -430,10 +430,10 @@ export default function App() {
                   {!auditResult ? (
                     <>
                       <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-white mb-2">
+                        <h2 className="text-2xl font-bold text-white mb-2">
                           {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
                         </h2>
-                        <p className="text-gray-400">
+                        <p className="text-gray-400 text-sm">
                           {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
                         </p>
                       </div>
