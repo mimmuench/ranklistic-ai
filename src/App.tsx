@@ -25,7 +25,7 @@ import { BrowserRouter } from 'react-router-dom';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Multiple instances hatasını engellemek için singleton yapısı
+// Tek bir instance oluşturup dışarı aktarıyoruz
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
@@ -33,6 +33,7 @@ type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [lang, setLang] = useState<'en' | 'tr'>('en');
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -55,98 +56,47 @@ export default function App() {
   useEffect(() => {
     let mounted = true;
 
-    const initAuth = async () => {
+    // 1. İlk açılışta mevcut oturumu kontrol et
+    const checkInitialSession = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setAuthError(sessionError.message);
-        }
-        
-        if (mounted && session?.user) {
-          setUser(session.user);
-          
-          // Fetch profile
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile && !profileError) {
-            setUserProfile(profile);
-          }
-          
-          setLoading(false);
-          
-          // Clean URL if redirected from auth
-          if (window.location.hash.includes('access_token')) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        } else {
-          if (mounted) {
-            setUser(null);
-            setUserProfile(null);
-            setLoading(false);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          if (session?.user) {
+            setUser(session.user);
+            // Profil çekme işlemini ayırdık (daha hızlı yükleme için)
+            fetchUserProfile(session.user.id);
+          } else {
+            setLoading(false); // Kullanıcı yoksa loading'i hemen kapat
           }
         }
       } catch (error) {
-        console.error('Init auth error:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+        console.error('Initial session check error:', error);
+        if (mounted) setLoading(false);
       }
     };
 
-    initAuth();
+    checkInitialSession();
 
-    // Listen to auth changes
+    // 2. Oturum değişikliklerini (Login, Logout, Token Refresh) CANLI dinle
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
-      
-      if (mounted) {
-        if (session?.user) {
-          setUser(session.user);
-          
-          // Fetch profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile) {
-            setUserProfile(profile);
-          }
-        } else {
-          setUser(null);
-          setUserProfile(null);
-        }
-        
+      if (!mounted) return;
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        await fetchUserProfile(session.user.id);
         setLoading(false);
-        
-        // Successful sign in
-        if (event === 'SIGNED_IN' && session) {
-          console.log('User signed in successfully!');
-          setAuthError(null);
-          
-          // Update last login
-          await supabase
-            .from('profiles')
-            .update({ last_login_at: new Date().toISOString() })
-            .eq('id', session.user.id);
-        }
-        
-        if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+      } else if (event === 'INITIAL_SESSION') {
+        setLoading(false); // İlk yükleme bittiğinde loading'i kapat
       }
     });
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      subscription.unsubscribe(); // Hafıza sızıntısını ve konsoldaki AbortError'ü engeller
     };
   }, []);
 
