@@ -233,16 +233,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                     {/* Competitor Spy */}
                     <button 
-                        onClick={() => handleLockedAction(() => {}, 'starter')} 
-                        className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-red-500 rounded-xl transition-all group text-left" // gap-4 -> gap-3, p-4 -> p-3, rounded-2xl -> rounded-xl
-                    >
-                        <div className="w-10 h-10 bg-red-900/20 rounded-lg flex items-center justify-center text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors"> {/* w-12 h-12 -> w-10 h-10, rounded-xl -> rounded-lg */}
-                            <ScaleIcon className="w-5 h-5" /> {/* w-6 h-6 -> w-5 h-5 */}
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-white text-sm">{t.spy}</h4> {/* text-lg -> text-sm */}
-                            <p className="text-[11px] text-gray-400 group-hover:text-gray-300 leading-tight">Reverse-engineer top sellers.</p> {/* text-xs -> text-[11px] */}
-                        </div>
+						onClick={() => handleLockedAction(() => setActiveTab('competitor'), 'starter')} 
+						className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-red-500 rounded-xl transition-all group text-left"
+					>
+						<div className="w-10 h-10 bg-red-900/20 rounded-lg flex items-center justify-center text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
+							<ScaleIcon className="w-5 h-5" />
+						</div>
+						<div>
+							<h4 className="font-bold text-white text-sm">{t.spy}</h4>
+							<p className="text-[11px] text-gray-400 group-hover:text-gray-300 leading-tight">Reverse-engineer top sellers.</p>
+						</div>
                     </button>
                 </div>
             </div>

@@ -154,11 +154,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {/* Sidebar Container */}
-            <aside className={`
-                fixed top-0 left-0 z-50 h-full w-72 bg-[#0F172A] border-r border-slate-800 flex flex-col transition-transform duration-300 ease-in-out
-                lg:translate-x-0 lg:static
-                ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}>
+            <aside id="sidebar-nav" className={`
+				fixed top-0 left-0 z-50 h-full w-72 bg-[#0F172A] border-r border-slate-800 flex flex-col transition-transform duration-300 ease-in-out
+				lg:translate-x-0 lg:static
+				${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+			`}>
                 {/* Header */}
                 <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -255,12 +255,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     </button>
                                     <div className="h-px bg-slate-700 my-1"></div>
                                     <button 
-                                        onClick={onSignOut}
-                                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                                    >
-                                        <CloseCircleIcon className="w-4 h-4" />
-                                        {lang === 'tr' ? 'Çıkış Yap' : 'Sign Out'}
-                                    </button>
+										onClick={() => {
+											console.log("Sign out initiative..."); // Çalıştığını konsoldan görmek için
+											if (onSignOut) {
+												onSignOut();
+											} else {
+												console.error("onSignOut function is missing!");
+											}
+										}}
+										className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+									>
+										<CloseCircleIcon className="w-4 h-4" />
+										{lang === 'tr' ? 'Çıkış Yap' : 'Sign Out'}
+									</button>
                                 </div>
                             </div>
                         )}
