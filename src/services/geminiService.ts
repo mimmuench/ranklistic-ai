@@ -181,21 +181,37 @@ export const generateListingContent = async (
     }
     
     const prompt = `
-    Generate an optimized Etsy listing.
-    Title input: ${title}
-    Description/Notes: ${description}
-    Niche: ${niche}
-    Material: ${material}
-    Tone: ${tone}
-    Template to follow:
-    ${template}
-    
-    Return JSON:
+    Act as a veteran Etsy Seller and SEO Strategist (2026 Update). 
+    Generate a listing that sounds AUTHENTIC, HUMAN, and CRAFTSMAN-LIKE. 
+    Avoid all "AI-typical" marketing fluff.
+
+    **STRICT TITLE RULES (ETSY 2026):**
+    1. ZERO REPETITION: Do NOT use the same word twice in the title. (e.g., if you use "Metal", do not use it again).
+    2. HUMAN FLOW: Use commas (,) instead of dashes (-) or pipes (|). It must read like a natural sentence.
+    3. FRONT-LOAD: Place the primary subject and material in the first 40 characters.
+    4. NO SPAM: Do not stack keywords. Focus on a clean, descriptive name.
+
+    **STRICT DESCRIPTION RULES (ANTI-AI JARGON):**
+    1. BANNED WORDS: Do NOT use: "Stunning", "Unique", "Must-have", "Elevate", "Exquisite", "Perfect for any decor", "Crafted with care", "Brings a touch of", "Meticulously", "Look no further".
+    2. HUMAN TOUCH: Write as if you are describing the product to a friend. Focus on the texture of the ${material}, the visual impact, and the actual utility.
+    3. TEMPLATE FIDELITY: You MUST follow this structure exactly: ${template}
+    4. KEYWORD DISTRIBUTION: Distribute keywords naturally. No "keyword stuffing" blocks.
+
+    **INPUT DATA:**
+    - Draft Title: ${title}
+    - Notes: ${description}
+    - Niche/Style: ${niche}
+    - Material: ${material}
+    - Shop Context: ${shopContext}
+    - Tone: ${tone} (Make it sound like a real person).
+    - Personalization: ${personalization ? 'Enabled' : 'Disabled'}
+
+    **RETURN ONLY THIS JSON:**
     {
-        "newTitle": "SEO Optimized Title",
-        "newDescription": "Full description following template",
-        "hashtags": ["tag1", "tag2", ... 13 tags],
-        "seoStrategy": "Explanation of strategy",
+        "newTitle": "Clean, No-Repeat, Human-Readable SEO Title",
+        "newDescription": "Full formatted description following the template strictly",
+        "hashtags": ["tag1", "tag2", ... exactly 13 unique long-tail tags],
+        "seoStrategy": "Briefly explain why this title avoids AI detection and follows 2026 rules",
         "socialMedia": {
             "pinterestTitle": "...",
             "pinterestDescription": "...",
@@ -206,6 +222,7 @@ export const generateListingContent = async (
         }
     }
     `;
+    
     parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
@@ -216,6 +233,7 @@ export const generateListingContent = async (
         }
     });
 
+    // Not: cleanJsonString fonksiyonunun projenizde tanımlı olduğundan emin olun.
     return cleanJsonString(response.text || "{}");
 };
 
@@ -226,10 +244,26 @@ export const getOptimizerChatResponse = async (
     message: string, 
     image: string | null
 ): Promise<string> => {
-    const systemInstruction = `You are an expert Etsy copywriter refining a listing.
-    Current Title: ${currentResult.newTitle}
-    Current Description: ${currentResult.newDescription}
-    User Request: ${message}
+    
+    const systemInstruction = `
+    You are a Strict Etsy SEO & Copywriting Editor (2026 Standards).
+    Your ONLY job is to help the user refine the CURRENT listing.
+
+    **CORE GUIDELINES:**
+    1. **Strict Context:** Only answer questions related to the current Etsy Title, Description, and Tags.
+    2. **Refusal Policy:** If the user asks for anything else (e.g., writing a blog post, coding, general chat, or unrelated advice), politely state: "I am specialized only in refining your current Etsy listing. Please stay on topic."
+    3. **No AI Jargon:** Even in your chat responses, NEVER use words like "stunning", "elevate", "exquisite", or "perfect for any decor". Keep your advice practical and human.
+    4. **Zero Repetition Enforcement:** If the user asks for a new title, you MUST still follow the Zero Repetition rule (never use the same word twice).
+    5. **Concise Responses:** Keep your chat answers short and direct. Don't write long essays.
+
+    **CURRENT LISTING DATA:**
+    - Current Title: ${currentResult.newTitle}
+    - Current Description: ${currentResult.newDescription}
+    - User's Original Template: ${contextData.template}
+
+    **USER REQUEST:** "${message}"
+    
+    Process the user request while staying strictly within the Etsy 2026 SEO framework.
     `;
 
     const contents = buildChatContents(history, message, image);
@@ -237,10 +271,13 @@ export const getOptimizerChatResponse = async (
     const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: contents,
-        config: { systemInstruction }
+        config: { 
+            systemInstruction,
+            maxOutputTokens: 800 // Mesajların çok uzamasını engelleyerek maliyeti ve suistimali düşürür.
+        }
     });
 
-    return response.text || "";
+    return response.text || "I couldn't process that request. Please try again with a listing-related question.";
 };
 
 export const runCompetitorAnalysis = async (myShopUrl: string, competitorShopUrl: string): Promise<string> => {
@@ -341,18 +378,20 @@ export const analyzeProductImage = async (base64: string, promptText: string, ni
 
 export const generateDemoTitle = async (input: string): Promise<string> => {
     const prompt = `
-    Act as a modern Etsy SEO Expert (Updated for 2025 Guidelines).
+    Act as a World-Class Etsy SEO Strategist (2026 Algorithm Expert).
     
-    Rewrite this input into a single, high-performing Etsy Title.
+    Task: Convert the input into a single, high-converting Etsy Title.
     
-    **STRICT RULES:**
-    1. **Concise:** Keep it under 140 characters (approx 12-15 words max).
-    2. **Human-First:** Must be readable and natural (NO tag stuffing).
-    3. **Zero Repetition:** Do NOT repeat the same word (e.g., don't say "Art" twice).
-    4. **Formula:** [Main Object & Material] + [Distinctive Feature/Style] + [Usage/Gift For].
+    **STRICT 2026 SEO RULES:**
+    1. **Strict Zero Repetition:** DO NOT use the same word twice. If you use "Metal", do not use it again. If you use "Art", do not use it again. (Exception: tiny words like 'and', 'with').
+    2. **Readable Flow:** No "dash-dash-dash" strings. Use commas (,) and create a natural sentence-like flow that a human enjoys reading.
+    3. **The 40-Character Hook:** The most important product identifier MUST be in the first 40 characters.
+    4. **No Keyword Stuffing:** Focus on the "vibe" and "utility" rather than synonyms.
+    5. **Formula:** [Primary Product & Material] with [Unique Detail], [Aesthetic Style] [Category Keyword], [Gift Occasion]
     
     Input: "${input}"
-    Return ONLY the final title text. No quotes.
+    
+    **OUTPUT REQUIREMENT:** Return ONLY the plain text of the title. No quotes, no intro, no "Here is your title". Just the text.
     `;
     
     const response = await ai.models.generateContent({
