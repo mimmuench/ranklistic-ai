@@ -78,31 +78,38 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
     }
 
     const cardWidth = 340;
-    const cardHeight = 240;
+    const cardHeight = 280;
     const padding = 20;
     
     let style: any = {
       position: 'fixed' as const,
     };
 
-    // Dikey pozisyon - alta sığıyorsa alta, yoksa üste, hiçbiri yoksa ortaya
-    if (spotlightRect.bottom + cardHeight + padding < window.innerHeight) {
-      style.top = spotlightRect.bottom + padding;
-    } else if (spotlightRect.top > cardHeight + padding) {
-      style.bottom = window.innerHeight - spotlightRect.top + padding;
+    // Önce yatay pozisyonu belirle - element solda mı sağda mı?
+    const isSidebar = spotlightRect.left < 300; // Sidebar genelde sol 280px'de
+    
+    if (isSidebar) {
+      // Sidebar için: kartı sağa yerleştir
+      style.left = spotlightRect.right + padding;
+      // Dikey olarak ortalansın
+      style.top = Math.max(padding, Math.min(
+        window.innerHeight - cardHeight - padding,
+        spotlightRect.top + (spotlightRect.height / 2) - (cardHeight / 2)
+      ));
     } else {
-      style.top = '50%';
-      style.transform = 'translateY(-50%)';
-    }
-
-    // Yatay pozisyon - element sağdaysa sola, soldaysa sağa
-    const elementCenter = spotlightRect.left + spotlightRect.width / 2;
-    if (elementCenter > window.innerWidth / 2) {
-      // Element sağda, kartı sola yerleştir
-      style.left = Math.max(padding, spotlightRect.left - cardWidth - padding);
-    } else {
-      // Element solda, kartı sağa yerleştir
-      style.left = Math.min(window.innerWidth - cardWidth - padding, spotlightRect.right + padding);
+      // Diğer elementler için: alta veya üste yerleştir
+      if (spotlightRect.bottom + cardHeight + padding < window.innerHeight) {
+        style.top = spotlightRect.bottom + padding;
+      } else if (spotlightRect.top > cardHeight + padding) {
+        style.bottom = window.innerHeight - spotlightRect.top + padding;
+      } else {
+        style.top = '50%';
+        style.transform = 'translateY(-50%)';
+      }
+      
+      // Yatay merkezde
+      style.left = '50%';
+      style.transform = (style.transform || '') + ' translateX(-50%)';
     }
 
     return style;
@@ -112,7 +119,7 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
     <div className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none font-sans">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto" />
 
-      {/* Spotlight Çerçevesi */}
+      {/* Spotlight Çerçevesi - Sidebar için özel durum */}
       {spotlightRect && (
         <div 
           className="absolute z-[10001] border-2 border-orange-500 rounded-xl shadow-[0_0_15px_rgba(249,115,22,0.5)] transition-all duration-500"
@@ -120,7 +127,8 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
             top: spotlightRect.top - 6,
             left: spotlightRect.left - 6,
             width: spotlightRect.width + 12,
-            height: spotlightRect.height + 12,
+            height: Math.min(spotlightRect.height + 12, 400), // Max 400px yükseklik
+            maxHeight: '400px'
           }}
         />
       )}
