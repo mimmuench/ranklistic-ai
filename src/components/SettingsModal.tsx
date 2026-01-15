@@ -1,8 +1,15 @@
-
 import React, { useState, useRef } from 'react';
-import { CloseIcon, UserIcon, CreditCardIcon, BrandIcon, CheckCircleIcon, PrinterIcon, StarIcon, SaveIcon, KeyIcon } from './icons';
-import { supabaseMock, UserProfile } from '../services/supabaseService';
+import { CloseIcon, UserIcon, CreditCardIcon, BrandIcon, SaveIcon, KeyIcon, StarIcon, CheckCircleIcon } from './icons';
+import { supabase } from '../services/client'; // ✅ GERÇEK CLIENT
 import type { UserSettings } from '../types';
+
+// UserProfile tipini basitçe burada tanımlayabilir veya types dosyasından çekebilirsin
+interface UserProfile {
+    id: string;
+    email: string;
+    plan: 'starter' | 'growth' | 'agency';
+    credits: number;
+}
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -19,7 +26,7 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-        resolve(base64String); // Keep full data URI
+        resolve(base64String); 
       };
       reader.onerror = reject;
       reader.readAsDataURL(blob);
@@ -40,15 +47,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
 
     if (!isOpen) return null;
 
-    const handleSave = () => {
+    // ✅ GERÇEK KAYDETME FONKSİYONU
+    const handleSave = async () => {
         setIsSaving(true);
-        // Simulate API call for settings
-        setTimeout(() => {
-            onSaveSettings(formData);
+        try {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            
+            if (currentUser) {
+                // Veritabanını güncelle
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        notifications: formData.notifications,
+                        brand_name: formData.brandName, // SQL'de brand_name sütunu olmalı
+                        brand_logo: formData.brandLogo  // SQL'de brand_logo sütunu olmalı
+                    })
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                // Başarılıysa yerel state'i güncelle ve kullanıcıya bildir
+                onSaveSettings(formData);
+                alert(lang === 'tr' ? 'Ayarlar kaydedildi!' : 'Settings saved successfully!');
+            }
+        } catch (error: any) {
+            console.error('Settings save error:', error);
+            alert('Error saving settings: ' + error.message);
+        } finally {
             setIsSaving(false);
-        }, 800);
+        }
     };
 
+    // ✅ GERÇEK ŞİFRE DEĞİŞTİRME
     const handlePasswordUpdate = async () => {
         if (!newPassword) return;
         if (newPassword !== confirmPassword) {
@@ -62,8 +92,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
 
         setIsSaving(true);
         try {
-            const { error } = await supabaseMock.auth.updateUser({ password: newPassword });
+            // Mock yerine gerçek auth
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            
             if (error) throw error;
+            
             setPasswordMsg({ type: 'success', text: lang === 'tr' ? "Şifre güncellendi!" : "Password updated successfully!" });
             setNewPassword('');
             setConfirmPassword('');
@@ -77,6 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Not: İleride bunu Storage Bucket'a yüklemek daha iyi olur ama şimdilik Base64 devam edelim.
             const base64 = await blobToBase64(file);
             setFormData({...formData, brandLogo: base64});
         }
@@ -117,7 +151,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
                             {!isAgency && <span className="text-[10px] bg-gray-700 px-1.5 py-0.5 rounded ml-auto">PRO</span>}
                         </button>
                     </nav>
-                    <div className="text-xs text-gray-600 text-center">v2.5.0</div>
                 </div>
 
                 {/* Main Content Area */}
@@ -139,10 +172,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
                                         <input type="email" value={user.email} disabled className="w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-500 cursor-not-allowed" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
-                                        <input type="text" defaultValue={defaultName} className="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500" />
                                     </div>
                                     <div className="pt-2">
                                         <label className="flex items-center gap-3 cursor-pointer">
@@ -231,7 +260,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, u
                                         <div className="flex items-center gap-2 text-green-400 font-bold mb-2">
                                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> Active
                                         </div>
-                                        <p className="text-sm text-gray-400">Next billing date: Oct 24, 2025</p>
+                                        <p className="text-sm text-gray-400">Account is active</p>
                                     </div>
                                 </div>
                             </div>

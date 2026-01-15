@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
-import type { AuditReport, AuditItem, SavedRecord, UserSettings } from '../types';
-import { SeoIcon, CameraIcon, BrandIcon, DescriptionIcon, PriceIcon, StarIcon, CheckCircleIcon, ChatBubbleIcon, PrinterIcon, SaveIcon, RocketIcon, CloseCircleIcon, CloseIcon } from './icons';
+import type { AuditReport, AuditItem, UserSettings } from '../types';
+import { SeoIcon, CameraIcon, BrandIcon, DescriptionIcon, PriceIcon, CheckCircleIcon, ChatBubbleIcon, PrinterIcon, SaveIcon, RocketIcon, CloseCircleIcon, CloseIcon } from './icons';
 import { RadarChart, GaugeChart } from './Charts';
-import { supabaseMock } from '../services/supabaseService';
+import { supabase } from '../services/client'; // ✅ GERÇEK CLIENT
 
 interface AuditResultProps {
   result: AuditReport;
@@ -54,7 +53,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
   // Calculate Average Score
   const averageScore = Math.round((result.audit.reduce((acc, curr) => acc + curr.score, 0) / result.audit.length) * 10) / 10;
 
-  // Prepare Radar Data (Map categories to short labels)
   const radarData = result.audit.map(item => {
       let label = item.category;
       if (label.length > 10) {
@@ -73,30 +71,46 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
     window.print();
   };
 
+  // ✅ GERÇEK KAYDETME FONKSİYONU
   const handleSave = async () => {
       setIsSaving(true);
-      const newRecord = {
-          type: 'audit' as const,
-          title: shopName,
-          date: new Date().toISOString(),
-          score: averageScore,
-          data: result,
-          tags: ['Audit', shopName]
-      };
-      
-      const success = await supabaseMock.db.saveReport(newRecord);
+      try {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          if (user) {
+            // saved_reports tablosuna kaydet
+            // Tablo yapısının şöyle olduğunu varsayıyoruz: user_id, title, content (json/text), niche, created_at
+            const { error } = await supabase
+                .from('saved_reports')
+                .insert({
+                    user_id: user.id,
+                    title: shopName,
+                    content: JSON.stringify(result), // Raporu JSON string olarak sakla
+                    niche: 'Shop Audit', // Kategori
+                    created_at: new Date().toISOString()
+                });
 
-      setIsSaving(false);
-      if (success) {
-          setIsSaved(true);
-          setTimeout(() => setIsSaved(false), 3000);
-      } else {
-          alert("Could not save to database. Check connection.");
+            if (error) throw error;
+
+            setIsSaved(true);
+            setTimeout(() => setIsSaved(false), 3000);
+          } else {
+              alert("Please log in to save reports.");
+          }
+      } catch (e) {
+          console.error("Save error:", e);
+          alert("Could not save to database.");
+      } finally {
+          setIsSaving(false);
       }
   };
 
   const isAgency = userPlan === 'agency';
   const hasCustomBranding = isAgency && (brandSettings?.brandName || brandSettings?.brandLogo);
+
+  // ... (Geri kalan render kısmı aynı, sadece handleSave güncellendi) ...
+  // Dosyanın geri kalan render kısmını aynen koruyabilirsin, sadece yukarıdaki handleSave ve import'u değiştirmen yeterli.
+  // Ama emin olmak için render kısmını da aşağıya ekliyorum:
 
   return (
     <div className="mt-10 space-y-8 relative pb-20">
@@ -186,7 +200,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
             {result.audit.map((item, index) => (
                 <div key={index} className="border border-gray-300 rounded-xl overflow-hidden break-inside-avoid relative mb-6">
                     <div className="p-6">
-                        {/* Header Row */}
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="text-xl font-bold text-black">{item.category}</h3>
@@ -197,7 +210,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                         </div>
 
                         <div className="grid grid-cols-1 gap-4">
-                            {/* Analysis */}
                             <div className="bg-gray-50 p-4 rounded border border-gray-200">
                                 <div className="text-xs text-gray-500 font-bold uppercase mb-2">AI Observations</div>
                                 <p className="text-gray-800 text-sm leading-relaxed">
@@ -205,7 +217,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                                 </p>
                             </div>
 
-                            {/* Missing Elements (New for Print) */}
                             {item.missingElements && item.missingElements.length > 0 && (
                                 <div className="bg-red-50 p-4 rounded border border-red-200">
                                     <div className="text-xs text-red-600 font-bold uppercase mb-2">Missing vs. Top Sellers</div>
@@ -219,7 +230,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                                 </div>
                             )}
 
-                            {/* Actions */}
                             <div className="bg-gray-50 p-4 rounded border border-gray-200">
                                 <div className="text-xs text-gray-500 font-bold uppercase mb-2">Strategic Fixes</div>
                                 <ul className="space-y-2">
@@ -237,22 +247,18 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
             ))}
         </div>
 
-        {/* Footer Branding in Print Mode */}
         <div className="text-center mt-12 pt-6 border-t border-gray-300 text-sm text-gray-500">
             <p>{hasCustomBranding ? `${brandSettings?.brandName} | Official Audit` : 'Generated by Ranklistic AI'}</p>
         </div>
       </div>
 
-      {/* 2. DETAILED VISUAL CARDS (SCREEN VERSION) - Duplicate logic for screen only */}
+      {/* 2. DETAILED VISUAL CARDS (SCREEN VERSION) */}
       <div className="grid grid-cols-1 gap-8 no-print">
         {result.audit.map((item, index) => (
             <div key={index} className="bg-[#161b28] border border-gray-700 rounded-2xl overflow-hidden shadow-lg break-inside-avoid relative">
-                
-                {/* Visual Header Background */}
                 <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${getCategoryStyle(item.category)}`}></div>
                 
                 <div className="p-6">
-                    {/* Header Row */}
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
                             <div className={`p-3 rounded-2xl bg-gradient-to-br ${getCategoryStyle(item.category)} shadow-lg`}>
@@ -271,7 +277,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
-                        {/* Analysis Column */}
                         <div className="space-y-4">
                             <div className="bg-gray-900/50 p-5 rounded-2xl border border-gray-700/50">
                                 <div className="text-xs text-gray-400 font-bold uppercase mb-3 flex items-center gap-2">
@@ -282,7 +287,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                                 </p>
                             </div>
 
-                            {/* NEW: Missing Elements Block */}
                             {item.missingElements && item.missingElements.length > 0 && (
                                 <div className="bg-red-900/10 p-5 rounded-2xl border border-red-500/20">
                                     <div className="text-xs text-red-400 font-bold uppercase mb-3 flex items-center gap-2">
@@ -299,7 +303,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                             )}
                         </div>
 
-                        {/* Action Column */}
                         <div className="bg-gray-900/50 p-5 rounded-2xl border border-gray-700/50 flex flex-col">
                             <div className="text-xs text-gray-400 font-bold uppercase mb-3 flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div> Strategic Fixes
@@ -313,7 +316,6 @@ export const AuditResult: React.FC<AuditResultProps> = ({ result, onStartChat, s
                                 ))}
                             </ul>
                             
-                            {/* Critical Errors */}
                             {item.criticalErrors && item.criticalErrors.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-gray-700/50">
                                     <div className="text-xs text-red-400 font-bold uppercase mb-2">Critical Errors</div>
