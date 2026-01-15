@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SearchIcon, GlobeIcon, RocketIcon, TrashIcon, HistoryIcon, GeneratorIcon, ScaleIcon, CheckCircleIcon, FireIcon, VideoIcon, SparklesIcon, CameraIcon } from './icons';
-import { supabase } from '../services/supabaseService';
+import { supabase } from '../services/client';
 import type { SavedRecord } from '../types';
 
 interface DashboardProps {
