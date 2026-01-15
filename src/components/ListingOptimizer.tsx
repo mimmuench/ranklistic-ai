@@ -12,49 +12,38 @@ const DEFAULT_TEMPLATE = `✨ [Insert Strong Keywords Here] ✨
 📦 ENJOY FREE SHIPPING ON ALL ORDERS!
 
 💫 Why you’ll love this [Product Type]
-*   **[Feature 1 Title]** – [Fact-based Benefit]
-*   **[Feature 2 Title]** – [Fact-based Benefit]
-*   **[Feature 3 Title]** – [Fact-based Benefit]
-*   **[Feature 4 Title]** – [Fact-based Benefit]
-*   **[Feature 5 Title]** – [Fact-based Benefit]
+* **[Feature 1 Title]** – [Fact-based Benefit]
+* **[Feature 2 Title]** – [Fact-based Benefit]
+* **[Feature 3 Title]** – [Fact-based Benefit]
+* **[Feature 4 Title]** – [Fact-based Benefit]
 
 🎁 Perfect for
-*   **[Target Audience 1]**
-*   **[Target Audience 2]**
-*   [Target Audience 3]
-*   [Target Audience 4]
-*   **[Target Audience 5]**
+* **[Target Audience 1]**
+* **[Target Audience 2]**
+* [Target Audience 3]
 
 📏 Available sizes
-15.7"x23.6"/40x60cm
-19.7"x29.5"/50x75cm
-23.6"x35.4"/60x90cm
-27.6"x41.3"/70x105cm
-31.5"x47.2"/80x120cm
-[Or Custom Sizes]
+[⚠️ PLEASE ENTER YOUR AVAILABLE SIZES HERE]
+[Example: Small / Medium / Large]
+[We can produce custom sizes upon request]
 
-🎨 Color options
-⚫ Matte Black
-🤍 White
-✨ Gold
-✨ Silver
-🟤 Bronze
+🎨 Color / Style options
+[List available colors, finishes, or variations here]
 
 🛠️ Material & craftsmanship
-*   Laser-cut from premium quality steel for intricate detail and durability
-*   Powder-coated for superior rust and UV resistance, ensuring lasting beauty
-*   Smooth edges and an outdoor-safe finish for versatile display
+[Describe material details, production method, and quality standards]
+[Mention any specific finish or protective coating used]
 
 📦 Shipping & guarantee
-*   FREE SHIPPING ON ALL ORDERS!
-*   Worldwide shipping in secure protective packaging to ensure safe arrival
-*   Fast delivery: 3–5 business days to North America & Europe
-*   100% satisfaction guarantee: We offer a full refund or replacement if your item arrives damaged
+* [Shipping Promise - e.g. Free Shipping]
+* Worldwide shipping in secure protective packaging
+* Fast delivery
+* 100% satisfaction guarantee: We offer a full refund or replacement if your item arrives damaged
 
 🏁 Final touch
-[Direct Call to Action - e.g. "Order now to upgrade your wall."].
+[Direct Call to Action - e.g. "Order now to upgrade your space."].
 
-** Looking for a custom fit? Special sizes are available upon request and will be priced individually. Please contact us for details.`;
+** Looking for a custom design? Please contact us for details.`;
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -183,8 +172,7 @@ const OptimizerChat: React.FC<{
 };
 
 
-export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData }) => {
-    // ListingOptimizer.tsx dosyasının içine gir ve bunu ekle:
+export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData }) => {    
 	const lang = 'en';
 	
 	// Mode Selection: 'image' or 'text'
@@ -219,6 +207,22 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [isChatLoading, setIsChatLoading] = useState<boolean>(false);
     
+	const handleNicheSelect = (nicheId: string) => {
+        setSelectedNicheKey(nicheId);
+        
+        // EĞER METAL ART SEÇİLİRSE, MALZEMEYİ OTOMATİK DOLDUR
+        if (nicheId === 'metal-art' || nicheId === 'wall-art') {
+            setMaterial('2mm High-Quality Steel, Electrostatic Powder Coating, Break-resistant and sturdy');
+        } 
+        // EĞER BAŞKA BİR ŞEY SEÇİLİRSE BOŞALT
+        else if (nicheId === 'digital') {
+            setMaterial('High Resolution Digital Download, PDF/JPG/PNG');
+        }
+        else {
+            setMaterial(''); 
+        }
+    };
+		
     // Initial Data Loading (from Bulk Analyzer OR TrendRadar)
     useEffect(() => {
         if (initialData) {
@@ -439,7 +443,7 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
                                 ].map((cat) => (
                                     <button
                                         key={cat.id}
-                                        onClick={() => setSelectedNicheKey(cat.id)}
+                                        onClick={() => handleNicheSelect(cat.id)}
                                         className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
                                             selectedNicheKey === cat.id 
                                             ? 'bg-orange-600/20 border-orange-500 text-white shadow-lg shadow-orange-900/20' 
@@ -468,27 +472,7 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
 										: "Enter a few specific keywords to describe your product (e.g., 'geometric deer', 'minimalist metal art'). AI will use these for the SEO strategy."}
 								/>
 							</div>
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-							
-			
-							
+														
                              {/* CUSTOM NICHE INPUT */}
                              {selectedNicheKey === 'custom' && (
                                 <div className="mt-4 animate-fade-in text-left">
