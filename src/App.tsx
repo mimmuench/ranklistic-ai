@@ -129,40 +129,27 @@ if (event === 'SIGNED_IN' && newSession?.user) {
 
         // 2. Auth state değişikliklerini dinle
         const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-          if (!mounted) return;
+		  if (!mounted) return;
 
-          console.log('Auth event:', event);
+		  console.log('Auth event:', event);
 
-          if (event === 'SIGNED_IN' && newSession?.user) {
-            setUser(newSession.user);
-            await fetchUserProfile(newSession.user.id);
-          } else if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setUserProfile(null);
-          } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-            setUser(newSession.user);
-          }
-          
-          setLoading(false);
-        });
+		  if (event === 'SIGNED_IN' && newSession?.user) {
+			// Profil zaten yüklü değilse veya farklı bir kullanıcı geldiyse çek
+			if (!userProfile || userProfile.id !== newSession.user.id) {
+			  await fetchUserProfile(newSession.user.id);
+			}
+			setUser(newSession.user);
+		  } else if (event === 'SIGNED_OUT') {
+			setUser(null);
+			setUserProfile(null);
+		  } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+			setUser(newSession.user);
+		  }
+		  
+		  setLoading(false);
+		});
 
-        authSubscription = data.subscription;
-
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (mounted) setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    return () => {
-      mounted = false;
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
-    };
-  }, []);
+		authSubscription = data.subscription;
 
   // --- EMAIL/PASSWORD LOGIN ---
   const handleEmailPasswordLogin = async (email: string, password: string, isSignUp: boolean = false) => {
