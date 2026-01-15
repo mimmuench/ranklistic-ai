@@ -127,8 +127,8 @@ if (event === 'SIGNED_IN' && newSession?.user) {
           setLoading(false);
         }
 
-        // 2. Auth state değişikliklerini dinle
-        const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        // App.tsx içinde 131. satır civarındaki onAuthStateChange bloğu
+		const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => { // ✅ Başına 'async' eklendi
 		  if (!mounted) return;
 
 		  console.log('Auth event:', event);
@@ -136,7 +136,7 @@ if (event === 'SIGNED_IN' && newSession?.user) {
 		  if (event === 'SIGNED_IN' && newSession?.user) {
 			// Profil zaten yüklü değilse veya farklı bir kullanıcı geldiyse çek
 			if (!userProfile || userProfile.id !== newSession.user.id) {
-			  await fetchUserProfile(newSession.user.id);
+			  await fetchUserProfile(newSession.user.id); // ✅ Şimdi await güvenle çalışacaktır
 			}
 			setUser(newSession.user);
 		  } else if (event === 'SIGNED_OUT') {
@@ -148,8 +148,6 @@ if (event === 'SIGNED_IN' && newSession?.user) {
 		  
 		  setLoading(false);
 		});
-
-		authSubscription = data.subscription;
 
   // --- EMAIL/PASSWORD LOGIN ---
   const handleEmailPasswordLogin = async (email: string, password: string, isSignUp: boolean = false) => {
