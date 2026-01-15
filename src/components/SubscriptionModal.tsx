@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { CheckCircleIcon, CloseIcon, RocketIcon, StarIcon, FireIcon, KeyIcon, CreditCardIcon } from './icons';
-import { supabaseMock } from '../services/supabaseService';
+import { supabase } from '../services/client'; // veya '../supabaseClient'
 import { initiateCheckout } from '../services/stripeService';
 
 interface SubscriptionModalProps {
@@ -75,25 +75,34 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
 
     const handleUpgrade = async (planKey: string) => {
         try {
-            const user = await supabaseMock.auth.getUser();
-            if (user) {
+            // ✅ DOĞRUSU BU: Supabase V2 Kullanımı
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user && user.email) {
                 // 1. Stripe Ödeme Sayfasını Aç
                 await initiateCheckout(planKey as any, billingCycle, user.email, user.id);
+            } else {
+                console.error("Kullanıcı oturumu bulunamadı!");
+                // İstersen burada "Lütfen giriş yapın" uyarısı gösterebilirsin
             }
         } catch (e) {
-            console.error(e);
+            console.error("Upgrade Hatası:", e);
         }
     };
 
     const handleBuyCredits = async (amount: number) => {
         try {
-            const user = await supabaseMock.auth.getUser();
-            if (user) {
+            // ✅ DOĞRUSU BU
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user && user.email) {
                 // `credits_50` formatında ID gönder
                 await initiateCheckout(`credits_${amount}` as any, 'monthly', user.email, user.id);
+            } else {
+                console.error("Kullanıcı oturumu bulunamadı!");
             }
         } catch (e) {
-            console.error(e);
+            console.error("Kredi Yükleme Hatası:", e);
         }
     };
 
@@ -101,47 +110,112 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, on
         if (!activationCode) return;
         setActivationStatus('loading');
 
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Network delay simulation
+        // 1. Önce kullanıcının oturumunu doğrula
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            setActivationStatus('error');
+            setActivationMessage(lang === 'tr' ? 'Lütfen giriş yapın.' : 'Please log in.');
+            return;
+        }
+
+        // Simüle edilmiş bekleme (Ağ gecikmesi hissi için)
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         const code = activationCode.trim().toUpperCase();
         let success = false;
         let msg = '';
 
-        // 1. Check if it's a PLAN upgrade code
-        let upgradePlan: 'starter' | 'growth' | 'agency' | null = null;
-        if (code === 'START50' || code.includes('START')) upgradePlan = 'starter';
-        else if (code === 'GROW200' || code.includes('GROW')) upgradePlan = 'growth';
-        else if (code === 'AGENCY1K' || code.includes('AGENCY')) upgradePlan = 'agency';
-        else if (code === 'LAUNCH20' || code === 'DEMO') upgradePlan = 'growth'; // Demo codes
+        try {
+            // --- A) PLAN YÜKSELTME KONTROLÜ ---
+            let upgradePlan: 'starter' | 'growth' | 'agency' | null = null;
+            
+            // Kodları burada kontrol ediyoruz
+            if (code === 'START50' || code.includes('START')) upgradePlan = 'starter';
+            else if (code === 'GROW200' || code.includes('GROW')) upgradePlan = 'growth';
+            else if (code === 'AGENCY1K' || code.includes('AGENCY')) upgradePlan = 'agency';
+            else if (code === 'LAUNCH20' || code === 'DEMO') upgradePlan = 'growth'; 
 
-        if (upgradePlan) {
-            await supabaseMock.db.upgradePlan(upgradePlan);
-            success = true;
-            msg = lang === 'tr' ? 'Paketiniz yükseltildi!' : 'Plan upgraded successfully!';
+            if (upgradePlan) {
+                // Kritik Nokta: Plana ait kredi miktarını config'den çekiyoruz
+                // plansConfig dosyanın en üstünde tanımlı olduğu için erişebiliriz
+                const planCredits = plansConfig[upgradePlan].credits;
+
+                // Veritabanını güncelliyoruz: HEM Plan HEM Kredi değişiyor
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        plan: upgradePlan,
+                        credits: planCredits // Plan kredisine resetlenir (veya üzerine ekleme mantığı istersen değiştirebiliriz)
+                    }) 
+                    .eq('id', user.id);
+
+                if (!error) {
+                    success = true;
+                    msg = lang === 'tr' ? `Paketiniz ${plansConfig[upgradePlan].nameTr} oldu!` : `Upgraded to ${plansConfig[upgradePlan].nameEn}!`;
+                } else {
+                    console.error('Plan update error:', error);
+                    throw new Error('Database update failed');
+                }
+            }
+
+            // --- B) KREDİ YÜKLEME (TOP-UP) KONTROLÜ ---
+            // Plan değişmez, sadece kredi eklenir
+            let creditAmount = 0;
+            if (code === 'TOPUP50' || code.includes('CREDIT50')) creditAmount = 50;
+            else if (code === 'TOPUP200' || code.includes('CREDIT200')) creditAmount = 200;
+            else if (code === 'TOPUP500' || code.includes('CREDIT500')) creditAmount = 500;
+
+            if (creditAmount > 0) {
+                // 1. Mevcut krediyi öğren
+                const { data: profile, error: fetchError } = await supabase
+                    .from('profiles')
+                    .select('credits')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (fetchError) throw fetchError;
+
+                const currentCredits = profile?.credits || 0;
+                
+                // 2. Yeni krediyi ekle
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ credits: currentCredits + creditAmount })
+                    .eq('id', user.id);
+
+                if (!updateError) {
+                    success = true;
+                    msg = lang === 'tr' ? `${creditAmount} Kredi eklendi!` : `${creditAmount} Credits added!`;
+                } else {
+                     console.error('Credit update error:', updateError);
+                     throw updateError;
+                }
+            }
+            
+            // Kod hiçbir şeye uymadıysa
+            if (!upgradePlan && creditAmount === 0) {
+                 setActivationStatus('error');
+                 setActivationMessage(lang === 'tr' ? 'Geçersiz kod.' : 'Invalid code.');
+                 return;
+            }
+
+        } catch (err) {
+            console.error('Activation process failed:', err);
+            setActivationStatus('error');
+            setActivationMessage(lang === 'tr' ? 'İşlem başarısız.' : 'Transaction failed.');
+            return;
         }
 
-        // 2. Check if it's a CREDIT TOP-UP code (Top-ups don't change plan, just add credits)
-        let creditAmount = 0;
-        if (code === 'TOPUP50' || code.includes('CREDIT50')) creditAmount = 50;
-        else if (code === 'TOPUP200' || code.includes('CREDIT200')) creditAmount = 200;
-        else if (code === 'TOPUP500' || code.includes('CREDIT500')) creditAmount = 500;
-
-        if (creditAmount > 0) {
-            await supabaseMock.db.addCredits(creditAmount);
-            success = true;
-            msg = lang === 'tr' ? `${creditAmount} Kredi eklendi!` : `${creditAmount} Credits added!`;
-        }
-
+        // --- SONUÇ BAŞARILIYSA ---
         if (success) {
             setActivationStatus('success');
             setActivationMessage(msg);
+            // 2 saniye sonra modalı kapat ve sayfayı yenile
             setTimeout(() => {
-                onSuccess(); // Refresh user data in App
-                onClose();   // Close modal
+                onSuccess(); 
+                onClose();
             }, 2000);
-        } else {
-            setActivationStatus('error');
-            setActivationMessage(lang === 'tr' ? 'Geçersiz lisans anahtarı.' : 'Invalid license key.');
         }
     };
 
