@@ -74,30 +74,33 @@ export default function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>({ language: 'en', notifications: true });
 
-  // --- FETCH USER PROFILE FUNCTION ---
-  const fetchUserProfile = async (userId: string) => {
+  // App.tsx içindeki fetchUserProfile fonksiyonunu bu hale getirin
+	const fetchUserProfile = async (userId: string) => {
+    // Eğer zaten yüklenmişse veya yükleniyorsa tekrar çağırmayı engellemek için bir kontrol eklenebilir
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Profile fetch error:', error);
-        setLoading(false);
-        return;
-      }
-      
-      if (profile) {
-        setUserProfile(profile);
-      }
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle(); // single() yerine maybeSingle() daha güvenlidir
+        
+        if (error) throw error;
+        if (profile) setUserProfile(profile);
     } catch (error) {
-      console.error('Profile fetch error:', error);
+        console.error('Profile fetch error:', error);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
+
+// useEffect içindeki SIGNED_IN kısmını kontrol edin
+if (event === 'SIGNED_IN' && newSession?.user) {
+    // Sadece profil yoksa çek
+    if (!userProfile || userProfile.id !== newSession.user.id) {
+        await fetchUserProfile(newSession.user.id);
+    }
+    setUser(newSession.user);
+}
 
   // --- AUTH CONTROL ---
   useEffect(() => {

@@ -5,24 +5,36 @@ import type { AuditItem, ChatMessage, CompetitorAnalysisResult, MarketAnalysisRe
 // API Key doğrudan process.env'den alınır.
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
-// ... (Existing helper functions like cleanJsonString) ...
 export const cleanJsonString = (str: string): string => {
-    let cleaned = str.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    const firstBracket = cleaned.indexOf('[');
-    const lastBracket = cleaned.lastIndexOf(']');
-
-    if (firstBrace > -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
-        if (lastBrace > -1) {
-            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    if (!str) return "{}";
+    
+    try {
+        // 1. Önce doğrudan parse etmeyi dene (belki zaten temizdir)
+        JSON.parse(str);
+        return str;
+    } catch (e) {
+        // 2. Markdown bloklarını ayıkla (en yaygın durum)
+        const markdownMatch = str.match(/```json\s*([\s\S]*?)\s*```/);
+        if (markdownMatch && markdownMatch[1]) {
+            return markdownMatch[1].trim();
         }
-    } else if (firstBracket > -1) {
-        if (lastBracket > -1) {
-            cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+
+        // 3. Blok yoksa, ilk { veya [ ile son } veya ] arasını al
+        const firstBrace = str.indexOf('{');
+        const firstBracket = str.indexOf('[');
+        let start = -1;
+        
+        if (firstBrace > -1 && (firstBracket === -1 || firstBrace < firstBracket)) start = firstBrace;
+        else if (firstBracket > -1) start = firstBracket;
+
+        if (start === -1) return "{}";
+
+        const end = str.lastIndexOf(str[start] === '{' ? '}' : ']');
+        if (end > start) {
+            return str.substring(start, end + 1);
         }
     }
-    return cleaned;
+    return "{}";
 };
 
 // Helper to construct chat history
