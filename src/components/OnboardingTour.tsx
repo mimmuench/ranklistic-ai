@@ -9,46 +9,47 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
   const [tourStep, setTourStep] = useState(0);
   const [spotlightRect, setSpotlightRect] = useState<DOMRect | null>(null);
 
+  // ✅ Dashboard'daki ID'leri hedefleyen yeni adımlar
   const tourSteps = [
     {
       icon: Sparkles,
-      title: "Growth Command Center",
-      subtitle: "Where Etsy Success Becomes Inevitable",
-      description: "You're about to discover the AI toolkit helping sellers 10x their sales. Ready?",
+      title: "Ranklistic'e Hoşgeldin!",
+      subtitle: "Başarının Komuta Merkezi",
+      description: "Satışlarını 10 katına çıkaracak yapay zeka araçlarını keşfetmeye hazır mısın? Hızlı bir tur atalım.",
       highlight: null,
-      primaryAction: "Start Tour",
+      primaryAction: "Turu Başlat",
     },
     {
       icon: Target,
-      title: "Your AI Arsenal",
-      description: "This sidebar is mission control. Shop audits, listing optimizer, and market analyzer are designed for an unfair advantage.",
-      tip: "Start with a Shop Audit to uncover hidden opportunities!",
-      highlight: "sidebar-nav",
+      title: "Görselden Listing Yazarı",
+      description: "Ürün fotoğrafını yükle, yapay zeka ürünü tanısın ve SEO uyumlu başlık, açıklama ve etiketleri saniyeler içinde yazsın.",
+      tip: "Fotoğrafın net olması analizi güçlendirir!",
+      highlight: "tour-visual-writer", // Dashboard'daki ID
     },
     {
       icon: Zap,
-      title: "Your Power Meter",
-      description: "Credits are fuel for your growth. High-tier AI insights require credits that refresh monthly—use them to dominate!",
-      tip: "Higher tier plans = More credits + Premium features",
-      highlight: "header-credits",
+      title: "ReelGen Video Stüdyosu",
+      description: "Tek bir fotoğraftan viral olmaya hazır Instagram Reels ve TikTok videoları oluştur. Video montajıyla uğraşma.",
+      tip: "Videoları doğrudan telefonuna indirip paylaşabilirsin.",
+      highlight: "tour-reel-gen", // Dashboard'daki ID
     },
     {
       icon: TrendingUp,
-      title: "Quick Actions",
-      description: "Generate optimized listings or spot trending products in seconds. These shortcuts are your fast-pass to success.",
-      tip: "Use Product Launchpad to validate ideas before you invest!",
-      highlight: "dashboard-quick-actions",
+      title: "TrendRadar",
+      description: "Rakiplerin uyanmadan 48 saat önce patlayacak nişleri yakala. Reddit ve TikTok sinyallerini tarar.",
+      tip: "Her gün 6 yeni trend önerisi alırsın.",
+      highlight: "tour-trend-radar", // Dashboard'daki ID
     },
     {
       icon: Award,
-      title: "Ready to Dominate",
-      description: "Every successful seller took action. Your first audit is waiting—let's make it legendary.",
+      title: "Hazırsın!",
+      description: "Artık araçların nerede olduğunu biliyorsun. İlk denetimini veya listelemeni yaparak hemen başla!",
       stats: [
-        { label: "Rev. Increase", value: "312%" },
-        { label: "Time Saved", value: "15h" }
+        { label: "Tahmini Artış", value: "%300+" },
+        { label: "Tasarruf", value: "15 Saat" }
       ],
       highlight: null,
-      primaryAction: "Launch My Success",
+      primaryAction: "Keşfetmeye Başla",
     }
   ];
 
@@ -60,56 +61,72 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
       if (currentStep.highlight) {
         const el = document.getElementById(currentStep.highlight);
         if (el) {
-          setSpotlightRect(el.getBoundingClientRect());
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const rect = el.getBoundingClientRect();
+          if (rect.width > 0 && rect.height > 0) {
+            setSpotlightRect(rect);
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+             setSpotlightRect(null);
+          }
+        } else {
+          console.warn(`Tur hedefi bulunamadı: ${currentStep.highlight}`);
+          setSpotlightRect(null);
         }
       } else {
         setSpotlightRect(null);
       }
     };
-    update();
+    
+    const timer = setTimeout(update, 100);
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    window.addEventListener('scroll', update);
+    
+    return () => {
+        window.removeEventListener('resize', update);
+        window.removeEventListener('scroll', update);
+        clearTimeout(timer);
+    };
   }, [tourStep]);
 
   const getCardPosition = () => {
     if (!spotlightRect) {
-      return { position: 'relative' as const };
+      return { 
+          position: 'fixed' as const,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10002
+      };
     }
 
     const cardWidth = 340;
-    const cardHeight = 280;
     const padding = 20;
     
     let style: any = {
       position: 'fixed' as const,
+      zIndex: 10002
     };
 
-    // Önce yatay pozisyonu belirle - element solda mı sağda mı?
-    const isSidebar = spotlightRect.left < 300; // Sidebar genelde sol 280px'de
-    
-    if (isSidebar) {
-      // Sidebar için: kartı sağa yerleştir
-      style.left = spotlightRect.right + padding;
-      // Dikey olarak ortalansın
-      style.top = Math.max(padding, Math.min(
-        window.innerHeight - cardHeight - padding,
-        spotlightRect.top + (spotlightRect.height / 2) - (cardHeight / 2)
-      ));
+    // Mobilde her zaman alta koy, Desktop'ta yana veya alta
+    if (window.innerWidth < 768) {
+        style.bottom = 20;
+        style.left = '50%';
+        style.transform = 'translateX(-50%)';
+        style.width = '90%';
     } else {
-      // Diğer elementler için: alta veya üste yerleştir
-      if (spotlightRect.bottom + cardHeight + padding < window.innerHeight) {
-        style.top = spotlightRect.bottom + padding;
-      } else if (spotlightRect.top > cardHeight + padding) {
-        style.bottom = window.innerHeight - spotlightRect.top + padding;
-      } else {
-        style.top = '50%';
-        style.transform = 'translateY(-50%)';
-      }
-      
-      // Yatay merkezde
-      style.left = '50%';
-      style.transform = (style.transform || '') + ' translateX(-50%)';
+        // Desktop mantığı
+        if (spotlightRect.top > 300) {
+            // Element aşağıdaysa kartı üste koy
+            style.bottom = window.innerHeight - spotlightRect.top + padding;
+            style.left = spotlightRect.left + (spotlightRect.width / 2) - (cardWidth / 2);
+        } else {
+            // Element yukarıdaysa kartı alta koy
+            style.top = spotlightRect.bottom + padding;
+            style.left = spotlightRect.left + (spotlightRect.width / 2) - (cardWidth / 2);
+        }
+        
+        // Ekran dışına taşmayı önle
+        if (style.left < 20) style.left = 20;
     }
 
     return style;
@@ -117,18 +134,17 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-none font-sans">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] pointer-events-auto transition-opacity duration-500" />
 
-      {/* Spotlight Çerçevesi - Sidebar için özel durum */}
+      {/* Spotlight Çerçevesi */}
       {spotlightRect && (
         <div 
-          className="absolute z-[10001] border-2 border-orange-500 rounded-xl shadow-[0_0_15px_rgba(249,115,22,0.5)] transition-all duration-500"
+          className="absolute z-[10001] border-2 border-orange-500 rounded-2xl shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all duration-500 ease-out"
           style={{
-            top: spotlightRect.top - 6,
-            left: spotlightRect.left - 6,
-            width: spotlightRect.width + 12,
-            height: Math.min(spotlightRect.height + 12, 400), // Max 400px yükseklik
-            maxHeight: '400px'
+            top: spotlightRect.top - 8,
+            left: spotlightRect.left - 8,
+            width: spotlightRect.width + 16,
+            height: spotlightRect.height + 16,
           }}
         />
       )}
@@ -139,13 +155,18 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
         style={getCardPosition()}
       >
         <div className="p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg">
-              <Icon size={20} />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center text-white shadow-lg">
+                <Icon size={20} />
+                </div>
+                <h3 className="text-white font-black text-sm uppercase tracking-tight italic">
+                {currentStep.title}
+                </h3>
             </div>
-            <h3 className="text-white font-black text-sm uppercase tracking-tight italic">
-              {currentStep.title}
-            </h3>
+            <button onClick={onComplete} className="text-gray-500 hover:text-white transition-colors">
+                <X size={16} />
+            </button>
           </div>
 
           <p className="text-gray-400 text-xs leading-relaxed mb-4">
@@ -154,8 +175,8 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
 
           {/* Pro Tip */}
           {currentStep.tip && (
-            <div className="mb-4 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 text-[11px] text-orange-200">
-              <span className="font-bold text-orange-500 uppercase mr-1 italic">Pro Tip:</span> 
+            <div className="mb-4 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20 text-[11px] text-orange-200 animate-pulse">
+              <span className="font-bold text-orange-500 uppercase mr-1 italic">Pro İpucu:</span> 
               {currentStep.tip}
             </div>
           )}
@@ -175,15 +196,25 @@ const OnboardingTour: React.FC<OnboardingTourProps> = ({ onComplete }) => {
           <div className="flex items-center justify-between pt-2 border-t border-gray-800">
             <div className="flex gap-1">
               {tourSteps.map((_, i) => (
-                <div key={i} className={`h-1 rounded-full transition-all ${i === tourStep ? 'w-4 bg-orange-500' : 'w-1.5 bg-gray-800'}`} />
+                <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === tourStep ? 'w-6 bg-orange-500' : 'w-1.5 bg-gray-700'}`} />
               ))}
             </div>
-            <button
-              onClick={() => tourStep < tourSteps.length - 1 ? setTourStep(tourStep + 1) : onComplete()}
-              className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] rounded-lg uppercase tracking-widest transition-all flex items-center gap-2"
-            >
-              {currentStep.primaryAction || "Next"} <ArrowRight size={12} />
-            </button>
+            <div className="flex gap-2">
+                {tourStep > 0 && (
+                    <button
+                    onClick={() => setTourStep(tourStep - 1)}
+                    className="px-3 py-2 text-gray-400 hover:text-white text-[10px] font-bold uppercase transition-colors"
+                    >
+                    Geri
+                    </button>
+                )}
+                <button
+                onClick={() => tourStep < tourSteps.length - 1 ? setTourStep(tourStep + 1) : onComplete()}
+                className="px-5 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] rounded-lg uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-orange-900/20"
+                >
+                {currentStep.primaryAction || "İleri"} <ArrowRight size={12} />
+                </button>
+            </div>
           </div>
         </div>
       </div>

@@ -180,45 +180,46 @@ export const generateListingContent = async (
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
     }
     
+    // YENİLENMİŞ SERT PROMPT
     const prompt = `
     Act as a veteran Etsy Seller and SEO Strategist (2026 Update). 
     Generate a listing that sounds AUTHENTIC, HUMAN, and CRAFTSMAN-LIKE. 
-    Avoid all "AI-typical" marketing fluff.
-
+    
     **STRICT TITLE RULES (ETSY 2026):**
-    1. ZERO REPETITION: Do NOT use the same word twice in the title. (e.g., if you use "Metal", do not use it again).
-    2. HUMAN FLOW: Use commas (,) instead of dashes (-) or pipes (|). It must read like a natural sentence.
-    3. FRONT-LOAD: Place the primary subject and material in the first 40 characters.
-    4. NO SPAM: Do not stack keywords. Focus on a clean, descriptive name.
+    1. ZERO REPETITION: Do NOT use the same word twice in the title.
+    2. HUMAN FLOW: Use commas (,) instead of dashes. Read like a natural sentence.
+    3. FRONT-LOAD: Primary subject + material in first 40 chars.
 
     **STRICT DESCRIPTION RULES (ANTI-AI JARGON):**
-    1. BANNED WORDS: Do NOT use: "Stunning", "Unique", "Must-have", "Elevate", "Exquisite", "Perfect for any decor", "Crafted with care", "Brings a touch of", "Meticulously", "Look no further".
-    2. HUMAN TOUCH: Write as if you are describing the product to a friend. Focus on the texture of the ${material}, the visual impact, and the actual utility.
-    3. TEMPLATE FIDELITY: You MUST follow this structure exactly: ${template}
-    4. KEYWORD DISTRIBUTION: Distribute keywords naturally. No "keyword stuffing" blocks.
+    1. 🚫 BANNED WORDS: "Stunning", "Unique", "Must-have", "Elevate", "Exquisite", "Perfect for", "Crafted with care", "Unleash", "Dive in", "Realm", "Game-changer".
+    2. TONE: Write as if describing the product to a friend. Focus on texture, utility, and feeling.
+    3. TEMPLATE: Follow this structure exactly: ${template}
+
+    **STRICT SOCIAL MEDIA RULES (THE FIX):**
+    1. INSTAGRAM: Casual, influencer vibe. NO robot words. Max 2 emojis.
+    2. PINTEREST: Keyword-rich but inspiring.
+    3. HASHTAGS: You MUST provide 20-30 hashtags for each platform. Mix high volume (1M+) and niche tags.
 
     **INPUT DATA:**
-    - Draft Title: ${title}
-    - Notes: ${description}
-    - Niche/Style: ${niche}
+    - Draft: ${title}
+    - Niche: ${niche}
     - Material: ${material}
-    - Shop Context: ${shopContext}
-    - Tone: ${tone} (Make it sound like a real person).
-    - Personalization: ${personalization ? 'Enabled' : 'Disabled'}
+    - Context: ${shopContext}
+    - Tone: ${tone}
 
     **RETURN ONLY THIS JSON:**
     {
-        "newTitle": "Clean, No-Repeat, Human-Readable SEO Title",
-        "newDescription": "Full formatted description following the template strictly",
-        "hashtags": ["tag1", "tag2", ... exactly 13 unique long-tail tags],
-        "seoStrategy": "Briefly explain why this title avoids AI detection and follows 2026 rules",
+        "newTitle": "Clean SEO Title",
+        "newDescription": "Full description",
+        "hashtags": ["tag1", "tag2", ... 13 Etsy tags],
+        "seoStrategy": "Why this works...",
         "socialMedia": {
-            "pinterestTitle": "...",
-            "pinterestDescription": "...",
-            "pinterestAltText": "...",
-            "pinterestHashtags": "...",
-            "instagramCaption": "...",
-            "instagramHashtags": "..."
+            "pinterestTitle": "Clickable Headline",
+            "pinterestDescription": "SEO rich description",
+            "pinterestAltText": "Visual description",
+            "pinterestHashtags": "#tag1 #tag2 ... (List 20+ tags here)",
+            "instagramCaption": "Short, punchy, human caption. No 'Elevate'.",
+            "instagramHashtags": "#tag1 #tag2 ... (List 20+ tags here)"
         }
     }
     `;
@@ -226,14 +227,13 @@ export const generateListingContent = async (
     parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-preview", // Veya kullandığın en iyi model
         contents: [{ parts }],
         config: {
             responseMimeType: "application/json"
         }
     });
 
-    // Not: cleanJsonString fonksiyonunun projenizde tanımlı olduğundan emin olun.
     return cleanJsonString(response.text || "{}");
 };
 
@@ -578,28 +578,30 @@ export const runTrendRadarAnalysis = async (niche: string, lang: 'en' | 'tr' = '
     
     let modeInstruction = "";
     
+    // Niche varsa ona odaklan, yoksa genel keşif yap
     if (niche && niche.trim().length > 0) {
         modeInstruction = `
         **INPUT NICHE:** "${niche}"
-        **MISSION:** Find 3 distinct, actionable micro-trends or sub-niches within "${niche}" that are rising right now.
-        **SOURCES:** Scan Reddit communities, TikTok aesthetic trends, and Pinterest queries.
+        **MISSION:** Identify 6 DISTINCT, rising micro-trends or sub-niches within "${niche}" that are currently exploding.
+        **SOURCES:** Scan Reddit communities, TikTok aesthetic trends, and Pinterest rising queries.
         `;
     } else {
         modeInstruction = `
         **INPUT NICHE:** NONE (OPEN DISCOVERY MODE).
-        **MISSION:** Act as a global cool-hunter. Find 3 entirely different, exploding Etsy trends (Blue Ocean opportunities).
-        **SOURCES:** Scan Reddit, TikTok, and Twitter.
+        **MISSION:** Act as a global cool-hunter. Find 6 entirely different, exploding Etsy trends (Blue Ocean opportunities).
+        **SOURCES:** Scan Reddit, TikTok, and Twitter signals.
         `;
     }
 
     const prompt = `
-        You are "TrendRadar", an elite Agency-grade AI.
+        You are "TrendRadar", an elite Agency-grade AI analyst.
         ${modeInstruction}
         ${langInstruction}
 
-        CRITICAL: Provide concrete ACTION PLANS. Don't be vague.
-        For "productsToMake", list specific items (e.g. "Velvet Choker with Pearl", "Mushroom Lamp", "Minimalist Line Art Vector").
-        For "shopVibe", describe the aesthetic (e.g. "Dark Academia", "Cottagecore", "Y2K Cyber").
+        CRITICAL RULES:
+        1. **QUANTITY:** You MUST provide exactly 6 trends.
+        2. **SPECIFICITY:** Do NOT give generic advice like "Minimalist Wall Art". Be specific (e.g. "Neo-Brutalist Concrete Textures", "Coquette Bow Aesthetics").
+        3. **ACTIONABLE:** For "productsToMake", list specific items users can create immediately.
 
         **OUTPUT:** JSON only.
         {
@@ -610,28 +612,68 @@ export const runTrendRadarAnalysis = async (niche: string, lang: 'en' | 'tr' = '
                     "name": "Trend Name",
                     "viralityScore": 95,
                     "status": "Exploding",
-                    "description": "Why it is trending...",
+                    "description": "Why it is trending (max 1 sentence)...",
                     "signals": ["TikTok #hashtag", "Pinterest search +200%"],
                     "actionPlan": {
-                        "shopVibe": "...",
-                        "targetAudience": "...",
+                        "shopVibe": "Describe the aesthetic...",
+                        "targetAudience": "Who buys this?",
                         "productsToMake": ["Item 1", "Item 2", "Item 3"],
-                        "marketingHook": "..."
+                        "marketingHook": "One catchy sentence."
                     }
                 },
-                ... (Total 3 distinct trends)
+                ... (Total 6 distinct trends)
             ]
         }
     `;
 
+    // Gemini 2.5 veya Flash modelini kullanıyoruz
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash-exp", // veya elindeki en yeni model
         contents: prompt,
         config: { 
-            tools: [{ googleSearch: {} }],
-            temperature: 0.8, // Slightly higher for creativity
+            tools: [{ googleSearch: {} }], // Güncel veri için Google Search açık kalsın
+            temperature: 0.7, // Biraz kıstık ki saçmalamasın
             responseMimeType: "application/json"
         }
     });
+    
     return cleanJsonString(response.text || "{}");
+};
+
+// 👇 BUNU EN ALTA VEYA UYGUN BİR BOŞLUĞA YAPIŞTIR:
+export const generateSocialPosts = async (productTitle: string, platform: 'instagram' | 'pinterest'): Promise<string> => {
+  const isPin = platform === 'pinterest';
+  
+  const prompt = `
+    Act as a viral social media influencer. Write a caption for: "${productTitle}".
+    Platform: ${isPin ? 'Pinterest' : 'Instagram'}.
+    
+    🚫 FORBIDDEN AI WORDS: "Elevate", "Unleash", "Realm", "Masterpiece", "Game-changer", "Stunning", "Dive in".
+    
+    TONE:
+    - Casual, human, slightly mysterious or helpful.
+    - Write like a real person sharing a find with friends.
+    - Max 3 Emojis (Don't overdo it).
+    
+    HASHTAG STRATEGY:
+    - Use exactly 25-30 hashtags.
+    - Mix high volume (1M+) and ultra-niche (<50k) tags.
+    - Tags must be relevant to Etsy/Handmade.
+    
+    OUTPUT STRUCTURE:
+    [Hook/Headline - Catchy & Short]
+    [Body - 2 sentences max]
+    [Call to Action]
+    .
+    .
+    .
+    [Block of 30 Hashtags]
+  `;
+
+  // Model çağrısı (Kendi ai.models veya google client yapına göre burayı check et)
+  const response = await ai.models.generateContent({
+        model: "gemini-1.5-flash",
+        contents: prompt
+  });
+  return response.text || "";
 };
