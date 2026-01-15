@@ -255,10 +255,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     </button>
                                     <div className="h-px bg-slate-700 my-1"></div>
                                     <button 
-										onClick={() => {
-											console.log("Sign out initiative..."); // Çalıştığını konsoldan görmek için
+										onClick={(e) => {
+											e.preventDefault(); // Sayfa yenileme riskini önler
+											e.stopPropagation(); // Tıklamanın menüdeki diğer elementleri tetiklemesini durdurur
+											console.log("Sign out initiative..."); 
 											if (onSignOut) {
-												onSignOut();
+												onSignOut(); // App.tsx'teki temizleyici fonksiyonu çağırır
 											} else {
 												console.error("onSignOut function is missing!");
 											}

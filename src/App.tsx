@@ -246,16 +246,36 @@ if (event === 'SIGNED_IN' && newSession?.user) {
     }
   };
 
-  // --- SIGN OUT ---
+  // --- Kesin ve Güvenli Sign Out ---
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // 1. Bekleyen tüm yükleme statelerini durdur
+      setLoading(false);
+      setIsActionLoading(false);
+      setIsChatLoading(false);
+
+      // 2. Supabase oturumunu sonlandır
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      // 3. Uygulama içi verileri sıfırla
       setUser(null);
       setUserProfile(null);
       setAuditResult(null);
+      setChatHistory([]);
       setActiveTab('dashboard');
+
+      // 4. LocalStorage temizliği (Eski verilerin çakışmasını önler)
+      localStorage.removeItem('sb-fjqbckhzkxiumdphkqyi-auth-token'); // Supabase token'ını temizle
+      
+      // Opsiyonel: Eğer hala takılma hissediyorsan sayfayı sert yenile:
+      // window.location.href = '/';
+
     } catch (error) {
       console.error('Sign out error:', error);
+      // Hata olsa bile kullanıcıyı dışarı at
+      setUser(null);
+      setUserProfile(null);
     }
   };
 

@@ -731,13 +731,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
   // 2. Sosyal Medya ile Giriş
   const handleSocialLogin = async (provider: 'google' | 'github') => {
-      const { error } = await supabase.auth.signInWithOAuth({
-          provider: provider,
-          options: {
-              redirectTo: window.location.origin // Giriş yapınca ana sayfaya geri dönsün
-          }
-      });
-      if (error) alert(error.message);
+      try {
+          setLoginStatus('loading');
+          const { error } = await supabase.auth.signInWithOAuth({
+              provider: provider,
+              options: {
+                  // Vercel'e push ettiğinde otomatik algılanması için redirectTo ekliyoruz
+                  redirectTo: window.location.origin,
+              }
+          });
+          if (error) throw error;
+      } catch (e: any) {
+          setLoginStatus('error');
+          setErrorMessage(e.message);
+          console.error(`${provider} login error:`, e);
+      }
   };
 
   // 3. Şifre Sıfırlama
