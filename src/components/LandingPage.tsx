@@ -4,7 +4,7 @@ import { SparklesIcon, SearchIcon, RocketIcon, CheckCircleIcon, PrinterIcon, Sta
 import { Footer } from './Footer';
 import { LegalModal } from './LegalModals';
 import { AnnouncementBar } from './AnnouncementBar';
-import { supabaseMock, UserProfile } from '../services/supabaseService';
+import { authService, UserProfile } from '../services/supabaseService';
 import { generateDemoTitle } from '../services/geminiService';
 
 // Demo modunu kapattık, gerçek moddayız (Services üzerinden kontrol edilir)
@@ -655,7 +655,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       }
   };
 
-  // --- AUTH FUNCTIONS USING SAFE MOCK SERVICE ---
+  // --- GERÇEK AUTH FONKSİYONLARI (MOCK KALDIRILDI) ---
   const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!email || !password) {
@@ -668,65 +668,58 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
       try {
           if (authMode === 'signup') {
-              // KAYIT OLMA (Sign Up)
-              // Use supabaseMock instead of direct supabase to prevent crashes
-              const { data, error } = await supabaseMock.auth.signUp({
-                  email,
-                  password,
-              });
+              // KAYIT OLMA (Sign Up) - Gerçek Servis Kullanımı
+              const { data, error } = await authService.signUp(email, password);
               if (error) throw error;
+              
               alert(lang === 'tr' ? "Kayıt başarılı! Giriş yapabilirsiniz." : "Sign up successful! You can now login.");
               setAuthMode('signin'); 
               setLoginStatus('idle');
           } else {
-              // GİRİŞ YAPMA (Sign In)
-              // Use supabaseMock
-              const { error } = await supabaseMock.auth.signInWithPassword({
-                  email,
-                  password,
-              });
+              // GİRİŞ YAPMA (Sign In) 
+              // DİKKAT: Süslü parantezleri {} sildik, JSON hatası böylece çözüldü!
+              const { error } = await authService.signInWithPassword(email, password);
+              
               if (error) throw error;
 
-              // Fetch complete user profile (with credits/plan)
-              const userProfile = await supabaseMock.auth.getUser();
+              // Giriş başarılıysa tam kullanıcı profilini (kredi/plan) çek
+              const userProfile = await authService.getCurrentUser();
               
               if (userProfile) {
                   setLoginStatus('success');
-                  // App.tsx kullanıcının girdiğini 500ms sonra anlayacak
+                  // Kullanıcıyı içeri al
                   setTimeout(() => onLoginSuccess(userProfile), 500);
               }
           }
       } catch (e: any) {
           setLoginStatus('error');
+          // Hata mesajını kullanıcıya göster
           setErrorMessage(e.message || "Authentication failed");
       }
   };
 
   // 2. Sosyal Medya ile Giriş
   const handleSocialLogin = async (provider: 'google' | 'github') => {
-      const { error } = await supabaseMock.auth.signInWithOAuth({
-          provider: provider,
-          options: { redirectTo: window.location.origin }
-      });
+      // Mock yerine gerçek sağlayıcıyı tetikle
+      const { error } = await authService.signInWithOAuth(provider);
       if (error) alert(error.message);
   };
 
+  // 3. Şifre Sıfırlama
   const handleForgotPassword = async () => {
     if (!email) {
-        alert("Please enter your email address first.");
+        alert(lang === 'tr' ? "Lütfen önce email adresinizi girin." : "Please enter your email address first.");
         return;
     }
     try {
-        const { error } = await supabaseMock.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin,
-        });
+        // supabaseService içindeki gerçek resetPassword fonksiyonunu çağırır
+        const { error } = await authService.resetPassword(email);
         if (error) throw error;
-        alert("Password reset link sent! Check your email.");
+        alert(lang === 'tr' ? "Şifre sıfırlama linki gönderildi!" : "Password reset link sent! Check your email.");
     } catch (e: any) {
         alert("Error: " + e.message);
     }
   };
-
 
   const runDemo = async (e: React.FormEvent) => {
       e.preventDefault();
