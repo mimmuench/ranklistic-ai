@@ -51,7 +51,6 @@ export default function App() {
   const [showTour, setShowTour] = useState(false);
 
   useEffect(() => {
-    // Kullanıcı daha önce turu tamamlamadıysa göster
     const hasSeenTour = localStorage.getItem('ranklistic_onboarded');
     if (!hasSeenTour) {
       setShowTour(true);
@@ -62,6 +61,7 @@ export default function App() {
     setShowTour(false);
     localStorage.setItem('ranklistic_onboarded', 'true');
   };
+
   // Modals & Data
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -74,33 +74,22 @@ export default function App() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings>({ language: 'en', notifications: true });
 
-  // App.tsx içindeki fetchUserProfile fonksiyonunu bu hale getirin
-	const fetchUserProfile = async (userId: string) => {
-    // Eğer zaten yüklenmişse veya yükleniyorsa tekrar çağırmayı engellemek için bir kontrol eklenebilir
+  const fetchUserProfile = async (userId: string) => {
     try {
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle(); // single() yerine maybeSingle() daha güvenlidir
-        
-        if (error) throw error;
-        if (profile) setUserProfile(profile);
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (profile) setUserProfile(profile);
     } catch (error) {
-        console.error('Profile fetch error:', error);
+      console.error('Profile fetch error:', error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
-
-// useEffect içindeki SIGNED_IN kısmını kontrol edin
-if (event === 'SIGNED_IN' && newSession?.user) {
-    // Sadece profil yoksa çek
-    if (!userProfile || userProfile.id !== newSession.user.id) {
-        await fetchUserProfile(newSession.user.id);
-    }
-    setUser(newSession.user);
-}
+  };
 
   // --- AUTH CONTROL ---
   useEffect(() => {
@@ -109,7 +98,6 @@ if (event === 'SIGNED_IN' && newSession?.user) {
 
     const initAuth = async () => {
       try {
-        // 1. İlk session kontrolü
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (!mounted) return;
@@ -127,27 +115,43 @@ if (event === 'SIGNED_IN' && newSession?.user) {
           setLoading(false);
         }
 
-        // App.tsx içinde 131. satır civarındaki onAuthStateChange bloğu
-		const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => { // ✅ Başına 'async' eklendi
-		  if (!mounted) return;
+        // Auth state değişikliklerini dinle
+        const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+          if (!mounted) return;
 
-		  console.log('Auth event:', event);
+          console.log('Auth event:', event);
 
-		  if (event === 'SIGNED_IN' && newSession?.user) {
-			// Profil zaten yüklü değilse veya farklı bir kullanıcı geldiyse çek
-			if (!userProfile || userProfile.id !== newSession.user.id) {
-			  await fetchUserProfile(newSession.user.id); // ✅ Şimdi await güvenle çalışacaktır
-			}
-			setUser(newSession.user);
-		  } else if (event === 'SIGNED_OUT') {
-			setUser(null);
-			setUserProfile(null);
-		  } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-			setUser(newSession.user);
-		  }
-		  
-		  setLoading(false);
-		});
+          if (event === 'SIGNED_IN' && newSession?.user) {
+            if (!userProfile || userProfile.id !== newSession.user.id) {
+              await fetchUserProfile(newSession.user.id);
+            }
+            setUser(newSession.user);
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setUserProfile(null);
+          } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
+            setUser(newSession.user);
+          }
+          
+          setLoading(false);
+        });
+
+        authSubscription = data.subscription;
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (mounted) setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      mounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
+  }, []);
 
   // --- EMAIL/PASSWORD LOGIN ---
   const handleEmailPasswordLogin = async (email: string, password: string, isSignUp: boolean = false) => {
@@ -231,34 +235,25 @@ if (event === 'SIGNED_IN' && newSession?.user) {
     }
   };
 
-  // --- Kesin ve Güvenli Sign Out ---
+  // --- SIGN OUT ---
   const handleSignOut = async () => {
     try {
-      // 1. Bekleyen tüm yükleme statelerini durdur
       setLoading(false);
       setIsActionLoading(false);
       setIsChatLoading(false);
 
-      // 2. Supabase oturumunu sonlandır
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
-      // 3. Uygulama içi verileri sıfırla
       setUser(null);
       setUserProfile(null);
       setAuditResult(null);
       setChatHistory([]);
       setActiveTab('dashboard');
 
-      // 4. LocalStorage temizliği (Eski verilerin çakışmasını önler)
-      localStorage.removeItem('sb-fjqbckhzkxiumdphkqyi-auth-token'); // Supabase token'ını temizle
-      
-      // Opsiyonel: Eğer hala takılma hissediyorsan sayfayı sert yenile:
-      // window.location.href = '/';
-
+      localStorage.removeItem('sb-fjqbckhzkxiumdphkqyi-auth-token');
     } catch (error) {
       console.error('Sign out error:', error);
-      // Hata olsa bile kullanıcıyı dışarı at
       setUser(null);
       setUserProfile(null);
     }
@@ -380,10 +375,8 @@ if (event === 'SIGNED_IN' && newSession?.user) {
   // --- LOGGED IN -> DASHBOARD ---
   return (
     <BrowserRouter>
-	  {/* BURAYA EKLE: Onboarding Turu en üstte durmalı */}
       {showTour && <OnboardingTour onComplete={handleTourComplete} />}
 	
-      {/* Yazı boyutunu genel olarak text-[13px] yaparak daha profesyonel bir zemin kurduk */}
       <div className="flex h-screen bg-[#0B0F19] text-white overflow-hidden font-sans text-[13px] antialiased">
         <Sidebar 
           activeTab={activeTab} 
@@ -407,17 +400,15 @@ if (event === 'SIGNED_IN' && newSession?.user) {
             userPlan={userProfile?.plan || 'free'}
           />
 
-          {/* p-4 md:p-6 -> p-2 md:p-4 yaparak ana alanı genişlettik */}
           <main className="flex-1 overflow-y-auto p-2 md:p-4 scroll-smooth bg-[#0B0F19]">
-            {/* max-w-[1400px] -> max-w-[1200px] yaparak içeriğin yanlara aşırı yayılmasını önledik */}
-            <div className="max-w-[1200px] mx-auto w-full space-y-4"> {/* space-y eklendi */}
+            <div className="max-w-[1200px] mx-auto w-full space-y-4">
               
               <div className={isVisible('dashboard')}>
                 <Dashboard 
                   lang={lang} 
                   userCredits={userProfile?.credits || 0} 
                   userPlan={userProfile?.plan || 'free'}
-				  setActiveTab={setActiveTab}
+                  setActiveTab={setActiveTab}
                   onNewAudit={() => setActiveTab('audit')} 
                   onNewListing={() => setActiveTab('optimizer')} 
                   onNewMarket={() => setActiveTab('market')} 
@@ -437,11 +428,11 @@ if (event === 'SIGNED_IN' && newSession?.user) {
               <div className={isVisible('audit')}>
                 {!auditResult ? (
                   <>
-                    <div className="text-center mb-6"> {/* mb-10 -> mb-6 */}
-                      <h2 className="text-xl font-bold text-white mb-1"> {/* text-2xl -> text-xl */}
+                    <div className="text-center mb-6">
+                      <h2 className="text-xl font-bold text-white mb-1">
                         {lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit'}
                       </h2>
-                      <p className="text-gray-400 text-xs"> {/* text-sm -> text-xs */}
+                      <p className="text-gray-400 text-xs">
                         {lang === 'tr' ? 'Mağazanızı analiz edin.' : 'Deep dive analysis of your shop.'}
                       </p>
                     </div>
@@ -451,7 +442,7 @@ if (event === 'SIGNED_IN' && newSession?.user) {
                   <div>
                     <button 
                       onClick={() => setAuditResult(null)} 
-                      className="mb-3 text-[12px] text-gray-400 hover:text-white" // mb-4 -> mb-3
+                      className="mb-3 text-[12px] text-gray-400 hover:text-white"
                     >
                       &larr; Back to Audit Form
                     </button>
