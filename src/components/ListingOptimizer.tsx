@@ -567,6 +567,7 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
                                         className="w-full p-2 bg-gray-900 border border-gray-600 rounded text-white text-sm"
                                     >
                                         <option value="Professional & Trustworthy">Professional Tone</option>
+										<option value="Passionate Artisan & Maker">Artisan Tone (Warm & Personal)</option>
                                         <option value="Playful & Fun">Playful Tone</option>
                                         <option value="Luxury & Elegant">Luxury Tone</option>
                                     </select>
