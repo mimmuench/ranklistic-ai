@@ -4,7 +4,7 @@ import { SparklesIcon, SearchIcon, RocketIcon, CheckCircleIcon, PrinterIcon, Sta
 import { Footer } from './Footer';
 import { LegalModal } from './LegalModals';
 import { AnnouncementBar } from './AnnouncementBar';
-import { authService, UserProfile } from '../services/supabaseService';
+import { supabase } from '../services/client';
 import { generateDemoTitle } from '../services/geminiService';
 
 // Demo modunu kapattık, gerçek moddayız (Services üzerinden kontrol edilir)
@@ -16,6 +16,14 @@ interface LandingPageProps {
 }
 
 type Language = 'en' | 'tr';
+
+interface UserProfile {
+    id: string;
+    email: string;
+    plan: 'starter' | 'growth' | 'agency' | 'free';
+    credits: number;
+    full_name?: string;
+}
 
 interface PricingCardProps {
     title: string;
@@ -655,7 +663,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       }
   };
 
-  // --- GERÇEK AUTH FONKSİYONLARI (MOCK KALDIRILDI) ---
+  // --- GERÇEK AUTH FONKSİYONLARI (SUPABASE ENTEGRASYONU) ---
   const handleAuthSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!email || !password) {
@@ -668,27 +676,50 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
       try {
           if (authMode === 'signup') {
-              // KAYIT OLMA (Sign Up) - Gerçek Servis Kullanımı
-              const { data, error } = await authService.signUp(email, password);
+              // --- KAYIT OLMA (Sign Up) ---
+              const { data, error } = await supabase.auth.signUp({
+                  email,
+                  password,
+              });
               if (error) throw error;
               
               alert(lang === 'tr' ? "Kayıt başarılı! Giriş yapabilirsiniz." : "Sign up successful! You can now login.");
               setAuthMode('signin'); 
               setLoginStatus('idle');
           } else {
-              // GİRİŞ YAPMA (Sign In) 
-              // DİKKAT: Süslü parantezleri {} sildik, JSON hatası böylece çözüldü!
-              const { error } = await authService.signInWithPassword(email, password);
+              // --- GİRİŞ YAPMA (Sign In) ---
+              const { error, data: authData } = await supabase.auth.signInWithPassword({
+                  email,
+                  password
+              });
               
               if (error) throw error;
 
-              // Giriş başarılıysa tam kullanıcı profilini (kredi/plan) çek
-              const userProfile = await authService.getCurrentUser();
-              
-              if (userProfile) {
-                  setLoginStatus('success');
-                  // Kullanıcıyı içeri al
-                  setTimeout(() => onLoginSuccess(userProfile), 500);
+              // Giriş başarılıysa, kullanıcının PROFIL bilgilerini (kredi, plan vs.) tablodan çekiyoruz
+              if (authData.user) {
+                  const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', authData.user.id)
+                    .single();
+                  
+                  if (profile) {
+                      setLoginStatus('success');
+                      // Kullanıcıyı içeri al
+                      setTimeout(() => onLoginSuccess(profile as UserProfile), 500);
+                  } else {
+                      // Profil henüz oluşmamışsa (nadiren olur), auth verisiyle devam etmeyi deneyebilir veya hata verebiliriz
+                      console.error("Profil bulunamadı:", profileError);
+                      // Geçici bir obje ile devam et (Hata vermemesi için)
+                      const tempProfile: UserProfile = {
+                          id: authData.user.id,
+                          email: authData.user.email!,
+                          plan: 'free',
+                          credits: 0
+                      };
+                      setLoginStatus('success');
+                      setTimeout(() => onLoginSuccess(tempProfile), 500);
+                  }
               }
           }
       } catch (e: any) {
@@ -700,8 +731,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
 
   // 2. Sosyal Medya ile Giriş
   const handleSocialLogin = async (provider: 'google' | 'github') => {
-      // Mock yerine gerçek sağlayıcıyı tetikle
-      const { error } = await authService.signInWithOAuth(provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+          provider: provider,
+          options: {
+              redirectTo: window.location.origin // Giriş yapınca ana sayfaya geri dönsün
+          }
+      });
       if (error) alert(error.message);
   };
 
@@ -712,8 +747,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
         return;
     }
     try {
-        // supabaseService içindeki gerçek resetPassword fonksiyonunu çağırır
-        const { error } = await authService.resetPassword(email);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin, // Şifre sıfırlama linkine tıklayınca siteye dönsün
+        });
         if (error) throw error;
         alert(lang === 'tr' ? "Şifre sıfırlama linki gönderildi!" : "Password reset link sent! Check your email.");
     } catch (e: any) {
