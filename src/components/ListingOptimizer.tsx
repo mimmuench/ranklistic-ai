@@ -5,45 +5,47 @@ import { LoadingSpinner } from './LoadingSpinner';
 import { generateListingContent, getOptimizerChatResponse } from '../services/geminiService';
 import type { ListingOptimizerResult, ChatMessage, OptimizerTransferData } from '../types';
 
-const DEFAULT_TEMPLATE = `✨ [Insert Strong Keywords Here] ✨
+const DEFAULT_TEMPLATE = `✨ [Insert Strong SEO Title Keywords Here] ✨
 
 🌟 Overview
-[Direct Product Definition - What is it exactly?]. [Key Feature 1]. [Key Feature 2].
+[Opening Hook: Write an emotional sentence inviting the customer to bring a specific feeling into their space]. [Visual Description: Describe the design elements and the mood it creates].
+
 📦 ENJOY FREE SHIPPING ON ALL ORDERS!
 
-💫 Why you’ll love this [Product Type]
-* **[Feature 1 Title]** – [Fact-based Benefit]
-* **[Feature 2 Title]** – [Fact-based Benefit]
-* **[Feature 3 Title]** – [Fact-based Benefit]
-* **[Feature 4 Title]** – [Fact-based Benefit]
+💫 Why you’ll love this [Product Name/Type]
+* **[Emotional/Symbolic Benefit]** – [Explain the meaning or feeling this design adds to the room].
+* **[Visual/Design Benefit]** – [Describe the aesthetic lines, composition, or balance].
+* **Premium Craftsmanship** – [Describe the quality of the cut and material].
+* **Durable Finish** – [Describe the coating and resistance properties].
+* **3D Shadow Effect** – [Mention the depth and spacers if applicable].
 
-🎁 Perfect for
-* **[Target Audience 1]**
-* **[Target Audience 2]**
-* [Target Audience 3]
+🎁 Perfect gift for
+* [Target Audience 1]
+* [Specific Occasion]
+* [Interior Style Match]
 
 📏 Available sizes
 [⚠️ PLEASE ENTER YOUR AVAILABLE SIZES HERE]
-[Example: Small / Medium / Large]
-[We can produce custom sizes upon request]
+[Example: 15.7"x20.5" / 40x52cm]
+[Example: 35.4"x46.1" / 90x117cm]
+(Custom sizes available upon request)
 
-🎨 Color / Style options
-[List available colors, finishes, or variations here]
+🎨 Color options
+[List the available colors based on the product inputs]
 
 🛠️ Material & craftsmanship
-[Describe material details, production method, and quality standards]
-[Mention any specific finish or protective coating used]
+[List the specific material details, thickness, coating method, and durability features based on the product inputs]
 
 📦 Shipping & guarantee
-* [Shipping Promise - e.g. Free Shipping]
-* Worldwide shipping in secure protective packaging
-* Fast delivery
-* 100% satisfaction guarantee: We offer a full refund or replacement if your item arrives damaged
+* FREE SHIPPING ON ALL ORDERS!
+* Worldwide shipping with secure, protective packaging
+* Fast delivery: 3–5 business days to North America & Europe
+* 100% satisfaction guarantee — full refund or replacement if damaged
 
 🏁 Final touch
-[Direct Call to Action - e.g. "Order now to upgrade your space."].
+[Closing Statement: A poetic final sentence summarizing the emotion of this specific piece].
 
-** Looking for a custom design? Please contact us for details.`;
+Looking for a custom size or color? Feel free to contact us — we’re happy to help.`;
 
 const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -209,17 +211,52 @@ export const ListingOptimizer: React.FC<ListingOptimizerProps> = ({ initialData 
     
 	const handleNicheSelect = (nicheId: string) => {
         setSelectedNicheKey(nicheId);
-        
-        // EĞER METAL ART SEÇİLİRSE, MALZEMEYİ OTOMATİK DOLDUR
-        if (nicheId === 'metal-art' || nicheId === 'wall-art') {
-            setMaterial('2mm High-Quality Steel, Electrostatic Powder Coating, Break-resistant and sturdy');
-        } 
-        // EĞER BAŞKA BİR ŞEY SEÇİLİRSE BOŞALT
-        else if (nicheId === 'digital') {
-            setMaterial('High Resolution Digital Download, PDF/JPG/PNG');
-        }
-        else {
-            setMaterial(''); 
+
+        switch (nicheId) {
+            // 1. METAL & WALL ART (Senin Uzmanlık Alanın)
+            case 'metal-art':
+            case 'wall-art':
+                setMaterial(`Specs: Laser-cut premium quality steel (1.5mm – 2mm). 
+Finish: Electrostatic powder coating (oven-baked), Smooth, durable, rust-resistant. 
+Usage: Suitable for bathrooms and covered outdoor areas.
+Colors usually available: Matte Black, White, Gold, Silver, Bronze.`);
+                break;
+
+            // 2. APPAREL (Tişört, Sweatshirt - POD Standartları)
+            case 'apparel':
+                setMaterial(`Fabric: 100% Soft Ring-Spun Cotton (or Premium Blend for Hoodies).
+Print: High-quality DTG (Direct to Garment) with eco-friendly water-based inks.
+Fit: Unisex Modern Fit, Pre-shrunk fabric to minimize shrinkage.
+Care: Machine washable, durable print that won't crack or fade easily.`);
+                break;
+
+            // 3. JEWELRY (Takı Standartları)
+            case 'jewelry':
+                setMaterial(`Material: 925 Sterling Silver / 14K Gold Filled / Stainless Steel.
+Quality: Hypoallergenic, Nickel-free, and Lead-free (Safe for sensitive skin).
+Finish: High-polish tarnish-resistant coating.
+Craftsmanship: Hand-polished and detailed precision work.`);
+                break;
+
+            // 4. DIGITAL (Dijital Ürün Standartları)
+            case 'digital':
+                setMaterial(`File Type: High-Resolution (300 DPI) JPG & PDF files.
+Delivery: Instant Digital Download via Email (No physical item shipped).
+Sizes: Includes 5 different aspect ratios scalable to 20+ frame sizes.
+Bonus: Includes a printing guide.`);
+                break;
+
+            // 5. HOME DECOR (Genel Dekorasyon - Ahşap/Seramik vb.)
+            case 'home-decor':
+                setMaterial(`Material: Sustainable Wood / Ceramic / Premium Textured Fabric (Edit as needed).
+Craftsmanship: Hand-finished details, Sturdy construction.
+Style: Designed to blend with Modern, Boho, and Minimalist interiors.`);
+                break;
+
+            // 6. CUSTOM & GENERAL (Kullanıcıya Bırak)
+            default:
+                setMaterial(''); // Kullanıcı kendi özel malzemesini girsin
+                break;
         }
     };
 		
