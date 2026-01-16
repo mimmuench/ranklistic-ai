@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SparklesIcon, RocketIcon } from './icons';
 
@@ -13,21 +12,21 @@ export const AnnouncementBar: React.FC = () => {
         {/* Content duplicated for seamless loop */}
         <div className="flex items-center gap-12 px-4">
             <span className="flex items-center gap-2"><RocketIcon className="w-3 h-3"/> WE ARE LIVE ON PRODUCT HUNT! 🚀</span>
-            <span>💎 Use code LAUNCH20 for 20% OFF Lifetime</span>
+            <span>💎 Use code PH20 for 20% OFF</span>
             <span className="flex items-center gap-2"><SparklesIcon className="w-3 h-3"/> TrendRadar: Now available for Agency Plans</span>
-            <span>⚡ Powered by Google Gemini 2.5 Flash</span>
+            <span>⚡ Powered by Google Gemini</span>
         </div>
         <div className="flex items-center gap-12 px-4">
             <span className="flex items-center gap-2"><RocketIcon className="w-3 h-3"/> WE ARE LIVE ON PRODUCT HUNT! 🚀</span>
-            <span>💎 Use code LAUNCH20 for 20% OFF Lifetime</span>
+            <span>💎 Use code PH20 for 20% OFF</span>
             <span className="flex items-center gap-2"><SparklesIcon className="w-3 h-3"/> TrendRadar: Now available for Agency Plans</span>
-            <span>⚡ Powered by Google Gemini 2.5 Flash</span>
+            <span>⚡ Powered by Google Gemini</span>
         </div>
         <div className="flex items-center gap-12 px-4">
             <span className="flex items-center gap-2"><RocketIcon className="w-3 h-3"/> WE ARE LIVE ON PRODUCT HUNT! 🚀</span>
-            <span>💎 Use code LAUNCH20 for 20% OFF Lifetime</span>
+            <span>💎 Use code PH20 for 20% OFF</span>
             <span className="flex items-center gap-2"><SparklesIcon className="w-3 h-3"/> TrendRadar: Now available for Agency Plans</span>
-            <span>⚡ Powered by Google Gemini 2.5 Flash</span>
+            <span>⚡ Powered by Google Gemini</span>
         </div>
       </div>
       
