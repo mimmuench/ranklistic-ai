@@ -192,57 +192,146 @@ export const generateListingContent = async (
         parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
     }
     
-    // YENİLENMİŞ SERT PROMPT
+    // 🔥 YENİ PROMPT (Eski prompt'u tamamen SİL, bunu koy)
     const prompt = `
-    Act as a veteran Etsy Seller and SEO Strategist (2026 Update). 
-    Generate a listing that sounds AUTHENTIC, HUMAN, and CRAFTSMAN-LIKE. 
-    
-    **STRICT TITLE RULES (ETSY 2026):**
-    1. ZERO REPETITION: Do NOT use the same word twice in the title.
-    2. HUMAN FLOW: Use commas (,) instead of dashes. Read like a natural sentence.
-    3. FRONT-LOAD: Primary subject + material in first 40 chars.
+**ROLE:** You are a veteran Etsy copywriter who has generated $10M+ in sales. Your listings don't sound like AI — they sound like a passionate craftsman talking to a friend.
 
-    **STRICT DESCRIPTION RULES (ANTI-AI JARGON):**
-    1. 🚫 BANNED WORDS: "Stunning", "Unique", "Must-have", "Elevate", "Exquisite", "Perfect for", "Crafted with care", "Unleash", "Dive in", "Realm", "Game-changer".
-    2. TONE: Write as if describing the product to a friend. Focus on texture, utility, and feeling.
-    3. TEMPLATE: Follow this structure exactly: ${template}
+**TASK:** Generate a professional Etsy listing for the following product.
 
-    **STRICT SOCIAL MEDIA RULES (THE FIX):**
-    1. INSTAGRAM: Casual, influencer vibe. NO robot words. Max 2 emojis.
-    2. PINTEREST: Keyword-rich but inspiring.
-    3. HASHTAGS: You MUST provide 20-30 hashtags for each platform. Mix high volume (1M+) and niche tags.
+---
 
-    **INPUT DATA:**
-    - Draft: ${title}
-    - Niche: ${niche}
-    - Material: ${material}
-    - Context: ${shopContext}
-    - Tone: ${tone}
+### 🚫 FORBIDDEN AI PHRASES (INSTANT FAIL IF USED):
+"Stunning", "Elevate your space", "Perfect for any decor", "Exquisite craftsmanship", "Must-have", "Game-changer", "Unleash", "Realm", "Dive into", "Meticulously crafted", "Breathtaking", "Timeless elegance", "Unique", "One-of-a-kind" (unless literally true), "Crafted with care"
 
-    **RETURN ONLY THIS JSON:**
-    {
-        "newTitle": "Clean SEO Title",
-        "newDescription": "Full description",
-        "hashtags": ["tag1", "tag2", ... 13 Etsy tags],
-        "seoStrategy": "Why this works...",
-        "socialMedia": {
-            "pinterestTitle": "Clickable Headline",
-            "pinterestDescription": "SEO rich description",
-            "pinterestAltText": "Visual description",
-            "pinterestHashtags": "#tag1 #tag2 ... (List 20+ tags here)",
-            "instagramCaption": "Short, punchy, human caption. No 'Elevate'.",
-            "instagramHashtags": "#tag1 #tag2 ... (List 20+ tags here)"
-        }
-    }
-    `;
+---
+
+### ✅ TITLE FORMULA (STRICT ETSY 2026 RULES):
+**Structure:** [Emotional Hook/Unique Detail] + [Primary Keyword] + [Material] + [Style Descriptor] + [Use Case/Gift Angle]
+
+**CRITICAL RULES:**
+1. **Zero Repetition:** NEVER use the same word twice (except tiny words like "and", "with", "for").
+2. **Front-Load Power:** The first 40 characters MUST contain the most unique/searchable keyword.
+3. **Natural Flow:** Use commas, not dashes. It should read like a sentence, not a keyword dump.
+4. **Character Limit:** 140 characters max (Etsy's hard limit).
+
+**Examples:**
+
+*For Metal Art:*
+❌ BAD: "Metal Wall Art Decor, Steel Wall Hanging, Modern Home Decor"
+✅ GOOD: "Mojave Sunset Saguaro Scene, Hand-Cut Steel Desert Landscape, Southwest Mountain Silhouette"
+
+*For Apparel:*
+❌ BAD: "Funny Cat Shirt, Cute Kitten Tee, Animal Lover Gift"
+✅ GOOD: "Sassy Cat Mom Vintage Tee, Retro Kitten Graphic, Soft Cotton Gift for Her"
+
+*For Jewelry:*
+❌ BAD: "Gold Necklace, Minimalist Pendant, Dainty Chain"
+✅ GOOD: "Crescent Moon Gold Necklace, Tiny Lunar Pendant, Delicate 14K Chain for Layering"
+
+---
+
+### ✅ DESCRIPTION STRUCTURE (ANTI-AI FRAMEWORK):
+
+Follow this exact structure but make it sound HUMAN:
+
+**OPENING (20-30 words):**
+- Start with a **sensory moment**, **emotional question**, or **vivid image**.
+- Do NOT start with "This product is...", "Introducing...", or "Looking for...".
+
+**Examples:**
+- (Metal Art): "Picture the last golden light hitting a Joshua Tree, casting long shadows across cracked earth. That's the feeling we laser-etched into steel."
+- (Jewelry): "There's something about a tiny gold crescent moon resting near your collarbone—mysterious, personal, like carrying a secret."
+- (Apparel): "This isn't just another graphic tee. It's the one you'll reach for on a Sunday morning when you want to feel like yourself."
+
+**BODY SECTION:**
+Use the user's template structure (${template}), but rewrite each benefit to sound conversational and specific:
+
+Instead of:
+❌ "Premium Craftsmanship – Precision laser cutting ensures every detail..."
+
+Write:
+✅ "**Cut with Obsessive Precision** – We run the laser three times to get those needle-thin spines on the Saguaro. Overkill? Maybe. But you'll notice."
+
+**IMPORTANT:** Follow the exact section headers from the template, but fill them with natural, non-robotic language.
+
+---
+
+### ✅ HASHTAG STRATEGY (CRITICAL - 13 TAGS REQUIRED):
+You MUST provide exactly 13 tags following this distribution:
+
+- **3-4 High-Volume** (broad, 100K+ searches): e.g., "Metal Wall Art", "Gold Necklace"
+- **6-7 Long-Tail** (specific, 10K-50K searches): e.g., "Joshua Tree Decor", "Minimalist Moon Pendant"
+- **2-3 Ultra-Niche** (hyper-specific, <10K searches): e.g., "Mojave Desert Gift", "Lunar Phase Jewelry"
+
+**Tag Formula Components:**
+[Product Type] + [Material] + [Style] + [Use Case] + [Occasion] + [Target Audience] + [Cultural/Location Reference]
+
+**Example (Metal Art):**
+Joshua Tree Art, Saguaro Metal Sign, Desert Wall Hanging, Southwest Steel Decor, Outdoor Landscape Art, Boho Mountain Scene, Rustic Cactus Gift, Arizona Home Decor, Modern Farmhouse Metal, Western Interior Design, California Desert Print, Large Steel Sculpture, Housewarming Wall Art
+
+---
+
+### ✅ SOCIAL MEDIA REQUIREMENTS:
+
+**PINTEREST:**
+- **Title:** 60-70 characters, keyword-rich but intriguing
+- **Description:** 120-150 characters, includes a benefit + search term
+- **Alt Text:** Descriptive for accessibility (what's literally in the image)
+- **Hashtags:** 20-30 tags, mixing broad + niche
+
+**INSTAGRAM:**
+- **Caption:** 2-3 sentences, conversational tone, max 2 emojis
+- **Hashtags:** 25-30 tags in first comment format
+
+---
+
+### 📋 INPUT DATA:
+- **Product Title/Draft:** ${title || 'Not provided — generate from image'}
+- **Niche/Category:** ${niche}
+- **Material Details:** ${material || 'Not specified'}
+- **User Context:** ${description || 'Not provided'}
+- **Desired Tone:** ${tone}
+- **Template Structure:** ${template}
+
+---
+
+### 📤 OUTPUT FORMAT (JSON ONLY):
+{
+  "newTitle": "Your generated title here (max 140 chars, zero word repetition)",
+  "newDescription": "Full description following the template structure with human tone",
+  "hashtags": ["tag1", "tag2", "tag3", ..., "tag13"],
+  "seoStrategy": "Brief explanation (2-3 sentences) of why this title/description combo will rank well and convert",
+  "socialMedia": {
+    "pinterestTitle": "60-70 char clickable headline",
+    "pinterestDescription": "120-150 char SEO description with benefit",
+    "pinterestAltText": "Image description for accessibility",
+    "pinterestHashtags": "#tag1 #tag2 #tag3 ... (20-30 tags separated by spaces)",
+    "instagramCaption": "2-3 sentence caption, casual tone, max 2 emojis",
+    "instagramHashtags": "#tag1 #tag2 #tag3 ... (25-30 tags separated by spaces)"
+  }
+}
+
+---
+
+### 🔍 FINAL QUALITY CHECK (Before you respond):
+1. ❌ Did I use ANY forbidden AI phrase? → If YES, REWRITE
+2. ❌ Does the title repeat any word (except "and"/"with"/"for")? → If YES, FIX
+3. ❌ Does the opening sentence sound like marketing copy? → If YES, make it human
+4. ❌ Are fewer than 7 hashtags long-tail (2+ words)? → If YES, add more specific tags
+5. ✅ Would a real craftsman say this to a customer? → If NO, simplify
+
+**NOW GENERATE THE LISTING.**
+`;
     
     parts.push({ text: prompt });
 
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview", // Veya kullandığın en iyi model
+        model: "gemini-2.0-flash-exp", // 🔥 En güncel modeli kullan
         contents: [{ parts }],
         config: {
-            responseMimeType: "application/json"
+            responseMimeType: "application/json",
+            temperature: 0.7, // Biraz yaratıcı ama kontrolde
+            maxOutputTokens: 4096 // Sosyal medya hashtag'leri için yeterli alan
         }
     });
 
@@ -258,25 +347,27 @@ export const getOptimizerChatResponse = async (
 ): Promise<string> => {
     
     const systemInstruction = `
-    You are a Strict Etsy SEO & Copywriting Editor (2026 Standards).
-    Your ONLY job is to help the user refine the CURRENT listing.
+    You are a Wise Etsy Strategy Consultant & Creative Copywriter.
+    Your mission is to be the user's partner in making this listing a bestseller.
 
     **CORE GUIDELINES:**
-    1. **Strict Context:** Only answer questions related to the current Etsy Title, Description, and Tags.
-    2. **Refusal Policy:** If the user asks for anything else (e.g., writing a blog post, coding, general chat, or unrelated advice), politely state: "I am specialized only in refining your current Etsy listing. Please stay on topic."
-    3. **No AI Jargon:** Even in your chat responses, NEVER use words like "stunning", "elevate", "exquisite", or "perfect for any decor". Keep your advice practical and human.
-    4. **Zero Repetition Enforcement:** If the user asks for a new title, you MUST still follow the Zero Repetition rule (never use the same word twice).
-    5. **Concise Responses:** Keep your chat answers short and direct. Don't write long essays.
+    1. **Helpful Expert Tone:** Instead of being a strict editor, be a helpful mentor. Talk like a craftsman to a friend. 
+    2. **Context Flexibility:** While your focus is the listing, you CAN discuss related things like:
+       - Pinterest/Social media ideas for THIS product.
+       - How to describe the materials better.
+       - Storytelling ideas for the brand.
+    3. **Soft Refusal:** If a request is COMPLETELY unrelated (e.g., "how to fix a car"), don't be robotic. Say: "I'd love to help, but let's keep our focus on making your [Product] stand out on Etsy so we don't lose our SEO momentum."
+    4. **Avoid the "AI Sound":** Stick to our forbidden words list ("stunning", "elevate", etc.) but don't be a robot. Use vivid, sensory language instead.
+    5. **Practicality Over Rules:** If a user wants to break a rule (like repeating a word in the title), explain WHY it's better not to, but still provide a creative alternative.
 
-    **CURRENT LISTING DATA:**
-    - Current Title: ${currentResult.newTitle}
-    - Current Description: ${currentResult.newDescription}
-    - User's Original Template: ${contextData.template}
+    **CURRENT CONTEXT:**
+    - Product: ${currentResult.newTitle}
+    - Details: ${currentResult.newDescription}
 
-    **USER REQUEST:** "${message}"
+    **USER'S CURRENT VIBE:** "${message}"
     
-    Process the user request while staying strictly within the Etsy 2026 SEO framework.
-    `;
+    Respond like a human who cares about the success of this shop. Keep it snappy, professional, but warm.
+`	;
 
     const contents = buildChatContents(history, message, image);
 
@@ -689,3 +780,42 @@ export const generateSocialPosts = async (productTitle: string, platform: 'insta
   });
   return response.text || "";
 };
+
+// generateListingContent fonksiyonundan SONRA:
+const validateQuality = (result: ListingOptimizerResult): string[] => {
+    const errors: string[] = [];
+    
+    // Title validation
+    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
+    const uniqueWords = new Set(titleWords.filter(w => w.length > 3)); // Ignore "and", "for"
+    if (titleWords.length !== uniqueWords.size + titleWords.filter(w => w.length <= 3).length) {
+        errors.push("❌ Title contains repeated words");
+    }
+    
+    // AI Jargon detection
+    const bannedPhrases = [
+        "stunning", "elevate", "perfect for any", "exquisite", 
+        "must-have", "game-changer", "unleash", "meticulously"
+    ];
+    const descLower = result.newDescription.toLowerCase();
+    bannedPhrases.forEach(phrase => {
+        if (descLower.includes(phrase)) {
+            errors.push(`❌ Description contains banned AI jargon: "${phrase}"`);
+        }
+    });
+    
+    // Hashtag quality check
+    const longTailCount = result.hashtags.filter(tag => tag.split(' ').length >= 2).length;
+    if (longTailCount < 7) {
+        errors.push(`⚠️ Only ${longTailCount}/13 tags are long-tail (need 7+)`);
+    }
+    
+    return errors;
+};
+
+// generateListingContent çağrısından sonra:
+const quality = validateQuality(parsedResult);
+if (quality.length > 0) {
+    console.warn("Quality Issues:", quality);
+    // UI'da göster veya otomatik regenerate iste
+}
