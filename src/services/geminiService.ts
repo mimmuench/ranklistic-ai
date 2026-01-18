@@ -352,28 +352,6 @@ const response = await ai.models.generateContent({
     return cleanJson;
 }; // <--- Fonksiyon burada güvenle kapanıyor
 
-// validateQuality fonksiyonu ise aşağıda, dışarıda kalabilir:
-const validateQuality = (result: any): string[] => {
-    const errors: string[] = [];
-    if (!result.newTitle) return errors;
-
-    // Title validation
-    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
-    const uniqueWords = new Set(titleWords.filter((w: string) => w.length > 3));
-    if (titleWords.filter((w: string) => w.length > 3).length !== uniqueWords.size) {
-        errors.push("❌ Title contains repeated words");
-    }
-
-    // Jargon check
-    const banned = ["stunning", "elevate", "perfect for", "exquisite"];
-    const content = (result.newTitle + " " + result.newDescription).toLowerCase();
-    banned.forEach(word => {
-        if (content.includes(word)) errors.push(`❌ Forbidden word: "${word}"`);
-    });
-
-    return errors;
-};
-
 export const getOptimizerChatResponse = async (
     contextData: { title: string, description: string, template: string },
     currentResult: ListingOptimizerResult,
