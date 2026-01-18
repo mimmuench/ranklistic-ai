@@ -325,17 +325,53 @@ Joshua Tree Art, Saguaro Metal Sign, Desert Wall Hanging, Southwest Steel Decor,
     
     parts.push({ text: prompt });
 
-    const response = await ai.models.generateContent({
+const response = await ai.models.generateContent({
         model: "gemini-2.0-flash-exp", // 🔥 En güncel modeli kullan
         contents: [{ parts }],
         config: {
             responseMimeType: "application/json",
-            temperature: 0.7, // Biraz yaratıcı ama kontrolde
-            maxOutputTokens: 4096 // Sosyal medya hashtag'leri için yeterli alan
+            temperature: 0.7,
+            maxOutputTokens: 4096
         }
     });
 
-    return cleanJsonString(response.text || "{}");
+    const responseText = response.text || "{}";
+    const cleanJson = cleanJsonString(responseText);
+
+    // 🔥 HATA BURADAYDI: Kontrolü fonksiyon bitmeden içeri aldık
+    try {
+        const parsedResult = JSON.parse(cleanJson);
+        const qualityIssues = validateQuality(parsedResult);
+        if (qualityIssues.length > 0) {
+            console.warn("Listing Quality Issues:", qualityIssues);
+        }
+    } catch (e) {
+        console.error("JSON Parsing error in validation:", e);
+    }
+
+    return cleanJson;
+}; // <--- Fonksiyon burada güvenle kapanıyor
+
+// validateQuality fonksiyonu ise aşağıda, dışarıda kalabilir:
+const validateQuality = (result: any): string[] => {
+    const errors: string[] = [];
+    if (!result.newTitle) return errors;
+
+    // Title validation
+    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
+    const uniqueWords = new Set(titleWords.filter((w: string) => w.length > 3));
+    if (titleWords.filter((w: string) => w.length > 3).length !== uniqueWords.size) {
+        errors.push("❌ Title contains repeated words");
+    }
+
+    // Jargon check
+    const banned = ["stunning", "elevate", "perfect for", "exquisite"];
+    const content = (result.newTitle + " " + result.newDescription).toLowerCase();
+    banned.forEach(word => {
+        if (content.includes(word)) errors.push(`❌ Forbidden word: "${word}"`);
+    });
+
+    return errors;
 };
 
 export const getOptimizerChatResponse = async (
@@ -813,9 +849,3 @@ const validateQuality = (result: ListingOptimizerResult): string[] => {
     return errors;
 };
 
-// generateListingContent çağrısından sonra:
-const quality = validateQuality(parsedResult);
-if (quality.length > 0) {
-    console.warn("Quality Issues:", quality);
-    // UI'da göster veya otomatik regenerate iste
-}
