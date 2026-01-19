@@ -36,10 +36,9 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const fullBase64 = event.target?.result as string;
-      // Gemini API için prefix'i kaldır
       const base64Data = fullBase64.split(',')[1];
       setImageBase64(base64Data);
-      setImagePreview(fullBase64); // Preview için full base64 kullan
+      setImagePreview(fullBase64);
       setError(null);
     };
     reader.readAsDataURL(file);
@@ -62,7 +61,8 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
       );
       const parsed = JSON.parse(json);
       
-      // 🔧 Boş alanlar için fallback
+      console.log('📦 Parsed Result:', parsed);
+      
       if (!parsed.backendKeywords || parsed.backendKeywords === 'undefined') {
         parsed.backendKeywords = 'metal wall art steel decor home decoration laser cut hanging sculpture modern design angel wings memorial gift';
       }
@@ -90,7 +90,6 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Package className="w-8 h-8 text-orange-500" />
@@ -107,7 +106,7 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
 
       {!result ? (
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Left Column - Upload & Settings */}
+          {/* Left Column */}
           <div className="space-y-4">
             {/* Image Upload */}
             <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
@@ -116,10 +115,10 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
               </label>
               
               {!imagePreview ? (
-                <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-700 border-dashed rounded-lg cursor-pointer bg-[#0B0F19] hover:bg-[#141B2B] transition-colors">
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <label className="flex flex-col items-center justify-center w-full aspect-square border-2 border-gray-700 border-dashed rounded-lg cursor-pointer bg-[#0B0F19] hover:bg-[#141B2B] transition-colors">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
                     <Upload className="w-12 h-12 mb-3 text-gray-500" />
-                    <p className="mb-2 text-sm text-gray-400">
+                    <p className="mb-2 text-sm text-gray-400 px-4">
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
                     <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
@@ -132,20 +131,24 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
                   />
                 </label>
               ) : (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Product preview"
-                    className="w-full h-64 object-cover rounded-lg"
-                  />
+                <div className="relative group w-full mx-auto">
+                  <div className="w-full aspect-square overflow-hidden rounded-xl bg-[#0B0F19] border border-gray-700 flex items-center justify-center">
+                    <img
+                      src={imagePreview}
+                      alt="Product preview"
+                      className="w-full h-full object-contain p-4 transition-transform duration-300"
+                    />
+                  </div>
                   <button
                     onClick={() => {
                       setImagePreview(null);
                       setImageBase64(null);
                     }}
-                    className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded text-xs hover:bg-red-600"
+                    className="absolute top-3 right-3 bg-red-500/90 backdrop-blur-sm text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-xl z-10"
                   >
-                    Remove
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               )}
@@ -188,9 +191,8 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             </div>
           </div>
 
-          {/* Right Column - Preview & Generate */}
+          {/* Right Column */}
           <div className="space-y-4">
-            {/* Info Cards */}
             <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-500/20 p-6">
               <div className="flex items-start gap-3">
                 <Sparkles className="w-6 h-6 text-orange-500 flex-shrink-0 mt-1" />
@@ -236,14 +238,12 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
               </ul>
             </div>
 
-            {/* Error Display */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                 <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}
 
-            {/* Generate Button */}
             <button
               onClick={handleGenerate}
               disabled={!imageBase64 || isLoading}
@@ -264,9 +264,7 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
           </div>
         </div>
       ) : (
-        /* Results View */
         <div className="space-y-6">
-          {/* Back Button */}
           <button
             onClick={handleReset}
             className="text-gray-400 hover:text-white text-sm flex items-center gap-2"
@@ -274,7 +272,6 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             ← {lang === 'tr' ? 'Yeni İlan Oluştur' : 'Create New Listing'}
           </button>
 
-          {/* Product Title */}
           <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
             <h3 className="text-orange-500 text-sm font-semibold mb-2">
               {lang === 'tr' ? 'ÜRÜN BAŞLIĞI' : 'PRODUCT TITLE'}
@@ -282,7 +279,6 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             <p className="text-white text-lg font-medium">{result.title}</p>
           </div>
 
-          {/* Bullet Points */}
           <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
             <h3 className="text-orange-500 text-sm font-semibold mb-4">
               {lang === 'tr' ? 'ÖZELLİKLER (BULLET POINTS)' : 'KEY FEATURES (BULLET POINTS)'}
@@ -297,23 +293,20 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             </ul>
           </div>
 
-          {/* Description */}
           <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
             <h3 className="text-orange-500 text-sm font-semibold mb-4">
               {lang === 'tr' ? 'ÜRÜN AÇIKLAMASI' : 'PRODUCT DESCRIPTION'}
             </h3>
-            <div className="text-gray-300 whitespace-pre-wrap">{result.description}</div>
+            <div className="text-gray-300 whitespace-pre-wrap">{result.productDescription}</div>
           </div>
 
-          {/* Search Terms */}
           <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
             <h3 className="text-orange-500 text-sm font-semibold mb-4">
               {lang === 'tr' ? 'BACKEND ARAMA TERİMLERİ' : 'BACKEND SEARCH TERMS'}
             </h3>
-            <p className="text-gray-300">{result.searchTerms}</p>
+            <p className="text-gray-300">{result.backendKeywords}</p>
           </div>
 
-          {/* A+ Suggestions */}
           {result.aPlusSuggestions && (
             <div className="bg-[#141B2B] rounded-lg border border-gray-800 p-6">
               <h3 className="text-orange-500 text-sm font-semibold mb-4">
@@ -323,11 +316,10 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-4">
             <button
               onClick={() => {
-                const text = `TITLE:\n${result.title}\n\nBULLET POINTS:\n${result.bulletPoints.join('\n')}\n\nDESCRIPTION:\n${result.description}\n\nSEARCH TERMS:\n${result.searchTerms}`;
+                const text = `TITLE:\n${result.title}\n\nBULLET POINTS:\n${result.bulletPoints.join('\n')}\n\nDESCRIPTION:\n${result.productDescription}\n\nSEARCH TERMS:\n${result.backendKeywords}`;
                 navigator.clipboard.writeText(text);
                 alert(lang === 'tr' ? 'Panoya kopyalandı!' : 'Copied to clipboard!');
               }}
