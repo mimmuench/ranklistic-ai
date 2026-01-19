@@ -14,13 +14,12 @@ interface DashboardProps {
     onOpenSubscription?: () => void;
     setActiveTab: (tab: any) => void;
     onGoToLaunchpad?: () => void;
-    onGoToReelGen?: () => void;
     onGoToTrendRadar?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
     lang, onLoadReport, onNewAudit, onNewListing, userCredits, userPlan, onOpenSubscription,
-    setActiveTab, onGoToLaunchpad, onGoToReelGen, onGoToTrendRadar
+    setActiveTab, onGoToLaunchpad, onGoToTrendRadar
 }) => {
     const [history, setHistory] = useState<SavedRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -156,39 +155,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                 </div>
 				
-                {/* CARD 2: REELGEN */}
-                <div 
-                    id="tour-reel-gen" // ✅ ID EKLENDİ
-                    onClick={onGoToReelGen}
-                    className="group relative h-64 bg-[#0F172A] border border-gray-800 hover:border-purple-500/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-purple-900/20 cursor-pointer"
-                >
-                    <div className="absolute inset-0 z-0">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl group-hover:bg-purple-600/20 transition-colors"></div>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pb-10 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <div className="w-12 h-12 rounded-full border-2 border-purple-500/50 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform bg-black/30 backdrop-blur-sm">
-                                <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-purple-500 border-b-[8px] border-b-transparent ml-1"></div>
-                            </div>
-                            <div className="w-40 h-6 flex items-end gap-1">
-                                {[...Array(12)].map((_, i) => (
-                                    <div key={i} className="w-2.5 bg-purple-500/30 rounded-t-sm" style={{ height: `${Math.random() * 100}%` }}></div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                {/* CARD 2: AMAZON ENGINE (ReelGen Yerine Geldi) */}
+				<div 
+					id="nav-amazon" // Turun bulacağı ID
+					onClick={() => setActiveTab('amazon')}
+					className="group relative h-64 bg-[#0F172A] border border-gray-800 hover:border-orange-500/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-orange-900/20 cursor-pointer"
+				>
+					<div className="absolute inset-0 z-0">
+						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-orange-600/10 rounded-full blur-3xl group-hover:bg-orange-600/20 transition-colors"></div>
+						<div className="absolute inset-0 flex flex-col items-center justify-center pb-10 opacity-80 group-hover:opacity-100 transition-opacity">
+							<RocketIcon className="w-12 h-12 text-orange-500 mb-3 animate-bounce" />
+							<div className="flex gap-1">
+								<div className="w-8 h-1 bg-orange-500/30 rounded-full"></div>
+								<div className="w-12 h-1 bg-orange-500/60 rounded-full"></div>
+								<div className="w-6 h-1 bg-orange-500/30 rounded-full"></div>
+							</div>
+						</div>
+					</div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
-                        <div className="flex justify-between items-center mb-1">
-                            <div className="p-1.5 bg-purple-500/20 rounded-lg">
-                                <VideoIcon className="w-5 h-5 text-purple-500" />
-                            </div>
-                            <span className="text-[9px] font-extrabold bg-purple-600 text-white px-2 py-0.5 rounded uppercase tracking-wider shadow-lg shadow-purple-900/50">
-                                {t.f2Badge}
-                            </span>
-                        </div>
-                        <h3 className="text-lg font-bold text-white mb-0.5">{t.f2Title}</h3>
-                        <p className="text-[11px] text-gray-400 leading-snug">{t.f2Desc}</p>
-                    </div>
-                </div>
+					<div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
+						<div className="flex justify-between items-center mb-1">
+							<div className="p-1.5 bg-orange-500/20 rounded-lg">
+								<RocketIcon className="w-5 h-5 text-orange-500" />
+							</div>
+							<span className="text-[9px] font-extrabold bg-orange-600 text-white px-2 py-0.5 rounded uppercase tracking-wider shadow-lg">
+								{lang === 'tr' ? 'AMAZON ÖZEL' : 'AMAZON SPECIAL'}
+							</span>
+						</div>
+						<h3 className="text-lg font-bold text-white mb-0.5">Amazon Engine</h3>
+						<p className="text-[11px] text-gray-400 leading-snug">
+							{lang === 'tr' ? 'Fotoğraftan saniyeler içinde Amazon Handmade listingleri üret.' : 'Generate Amazon listings from photos in seconds.'}
+						</p>
+					</div>
+				</div>
 				
                 {/* CARD 3: TREND RADAR */}
                 <div 

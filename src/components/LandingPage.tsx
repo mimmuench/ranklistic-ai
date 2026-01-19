@@ -5,7 +5,19 @@ import { Footer } from './Footer';
 import { LegalModal } from './LegalModals';
 import { AnnouncementBar } from './AnnouncementBar';
 import { supabase } from '../services/client';
-import { generateDemoTitle } from '../services/geminiService';
+
+const handleDemoGenerate = async () => {
+    if (!demoInput.trim()) return;
+    setIsGenerating(true);
+    try {
+        const title = await generateDemoTitle(demoInput);
+        setDemoResult(title);
+    } catch (e) {
+        console.error(e);
+    } finally {
+        setIsGenerating(false);
+    }
+};
 
 // Demo modunu kapattık, gerçek moddayız (Services üzerinden kontrol edilir)
 const isDemoMode = false;
@@ -1002,90 +1014,76 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted, onLoginS
       </div>
 
        {/* DEMO SECTION */}
-       <section id="demo" className="py-24 relative z-10 bg-[#0B0F19]">
-          <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-4xl">
-              <div className="text-center mb-12">
-                  <h2 className="text-3xl md:text-5xl font-bold mb-4">{t.demo.title} <span className="text-orange-400">{t.demo.titleHighlight}</span></h2>
-                  <p className="text-gray-400">{t.demo.subtitle}</p>
-              </div>
+        <section id="demo" className="py-24 relative z-10 bg-[#0B0F19]">
+            <div className="container mx-auto px-6 max-w-4xl">
+                <div className="bg-gradient-to-br from-orange-900 to-pink-900 rounded-3xl p-8 text-white shadow-2xl border border-white/10">
+                    <h3 className="text-3xl font-bold mb-2 text-center">
+                        ✨ Try Our AI Title Generator
+                    </h3>
+                    <p className="text-orange-200 text-center mb-6">
+                        Watch how we transform boring titles into click magnets
+                    </p>
 
-              <div className="bg-[#161b28] border border-gray-700 rounded-2xl p-8 shadow-2xl relative overflow-hidden transition-all duration-300">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-pink-500"></div>
-                  
-                  {isLimitReached ? (
-                      <div className="text-center py-8 animate-fade-in">
-                          <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-900/50">
-                              <RocketIcon className="w-8 h-8 text-white" />
-                          </div>
-                          <h3 className="text-2xl font-bold text-white mb-2">{t.demo.limitReachedTitle}</h3>
-                          <p className="text-gray-400 mb-8 max-w-md mx-auto">{t.demo.limitReachedDesc}</p>
-                          <button 
-                            onClick={handleOpenLogin}
-                            className="bg-white text-gray-900 font-bold px-8 py-4 rounded-full hover:bg-gray-200 transition-all transform hover:scale-105 shadow-xl"
-                          >
-                              {t.demo.limitBtn}
-                          </button>
-                      </div>
-                  ) : (
-                      <>
-                        <form onSubmit={runDemo} className="flex flex-col sm:flex-row gap-4 mb-8">
-                            <input 
-                                type="text" 
-                                value={demoInput}
-                                onChange={(e) => setDemoInput(e.target.value)}
-                                placeholder={t.demo.placeholder} 
-                                className="flex-1 p-4 bg-gray-900 border border-gray-600 rounded-xl text-white text-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={isDemoLoading || !demoInput}
-                                className="bg-white text-gray-900 font-bold px-8 py-4 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 min-w-[160px]"
+                    {/* ÖRNEKLER */}
+                    <div className="flex flex-wrap gap-2 mb-4 justify-center">
+                        {['wooden cutting board', 'cat drawing', 'minimalist necklace', 'desert wall art'].map(example => (
+                            <button
+                                key={example}
+                                onClick={() => setDemoInput(example)}
+                                className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-sm transition"
                             >
-                                {isDemoLoading ? (
-                                    <div className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                    <>
-                                        <SparklesIcon className="w-5 h-5" />
-                                        <span>{t.demo.button}</span>
-                                    </>
-                                )}
+                                {example}
                             </button>
-                        </form>
+                        ))}
+                    </div>
 
-                        {demoResult && (
-                            <div className="animate-fade-in space-y-4">
-                                <div className="bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
-                                    <div className="text-xs text-red-400 uppercase font-bold mb-1">{t.demo.beforeLabel}</div>
-                                    <div className="text-gray-400 line-through">{demoInput}</div>
-                                </div>
-                                <div className="flex flex-col items-center justify-center py-2">
-                                    <div className="w-0.5 h-8 bg-gray-700"></div>
-                                    <div className="bg-gray-700 text-xs px-2 py-1 rounded-full text-gray-300">{t.demo.magicLabel}</div>
-                                    <div className="w-0.5 h-8 bg-gray-700"></div>
-                                </div>
-                                <div className="bg-green-900/20 border-l-4 border-green-500 p-4 rounded-r-lg relative overflow-hidden">
-                                    <div className="text-xs text-green-400 uppercase font-bold mb-1">{t.demo.afterLabel}</div>
-                                    <div className="text-white text-lg font-bold">{demoResult.title}</div>
-                                    <div className="absolute top-4 right-4 bg-green-500 text-black font-bold px-3 py-1 rounded-full text-xs animate-bounce shadow-lg">
-                                        {t.demo.trafficLabel}: {demoResult.traffic}
-                                    </div>
-                                </div>
-                                <p className="text-center text-gray-500 text-sm mt-4">
-                                    {t.demo.disclaimer}
-                                </p>
-                            </div>
-                        )}
+                    <div className="flex gap-3 mb-6">
+                        <input
+                            type="text"
+                            value={demoInput}
+                            onChange={(e) => setDemoInput(e.target.value)}
+                            placeholder="Try: 'wooden cutting board'..."
+                            className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 focus:border-orange-400 outline-none placeholder:text-orange-200/50"
+                        />
+                        <button
+                            onClick={handleDemoGenerate}
+                            disabled={isDemoLoading || !demoInput.trim()}
+                            className="bg-orange-500 hover:bg-orange-600 px-6 py-3 rounded-xl font-bold disabled:opacity-50 transition shadow-lg"
+                        >
+                            {isDemoLoading ? 'Generating...' : 'Generate ✨'}
+                        </button>
+                    </div>
 
-                        {!demoResult && !isDemoLoading && (
-                            <div className="text-center text-gray-600 text-sm italic">
-                                {t.demo.waiting}
+                    {demoResult && (
+                        <div className="bg-black/30 rounded-xl p-6 animate-fade-in border border-white/10">
+                            <div className="flex items-start justify-between mb-2">
+                                <span className="text-xs font-bold text-orange-400 uppercase">AI-Generated Title:</span>
+                                <span className="text-xs text-gray-400">{demoResult.length}/140 chars</span>
                             </div>
-                        )}
-                      </>
-                  )}
-              </div>
-          </div>
-       </section>
+                            <p className="text-xl font-semibold leading-relaxed mb-4">{demoResult}</p>
+
+                            <div className="border-t border-white/10 pt-4 grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div className="text-orange-400 font-bold mb-1">❌ Old Way:</div>
+                                    <div className="text-gray-400 italic">{demoInput}</div>
+                                </div>
+                                <div>
+                                    <div className="text-green-400 font-bold mb-1">✅ Ranklistic Way:</div>
+                                    <div className="text-white font-medium">{demoResult.substring(0, 60)}...</div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={() => navigator.clipboard.writeText(demoResult)}
+                                className="mt-4 w-full bg-white/10 hover:bg-white/20 py-2 rounded-lg text-sm font-semibold transition"
+                            >
+                                📋 Copy Title
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </section>
 
       {/* COMPARISON TABLE */}
       <section id="comparison" className="py-24 relative z-10 bg-[#0B0F19]">

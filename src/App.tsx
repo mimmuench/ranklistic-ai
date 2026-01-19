@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './services/client';
+import { createClient } from '@supabase/supabase-js'
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -11,8 +12,6 @@ import { GlobalMarketAnalyzer } from './components/GlobalMarketAnalyzer';
 import { KeywordResearch } from './components/KeywordResearch';
 import { ProductLaunchpad } from './components/ProductLaunchpad';
 import { TrendRadar } from './components/TrendRadar';
-import { NewShopStarter } from './components/NewShopStarter';
-import { ReelGen } from './components/ReelGen';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { SettingsModal } from './components/SettingsModal';
 import { LandingPage } from './components/LandingPage';
@@ -21,23 +20,9 @@ import { runEtsyAudit, getChatResponse } from './services/geminiService';
 import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessage } from './types';
 import { BrowserRouter } from 'react-router-dom';
 import OnboardingTour from './components/OnboardingTour';
+import { AmazonGenerator } from './components/AmazonGenerator';
 
-// --- SUPABASE CONNECTION ---
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Singleton pattern - sadece bir kez oluştur
-let supabaseInstance: any = null;
-const getSupabaseClient = () => {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
-  }
-  return supabaseInstance;
-};
-
-export const supabase = getSupabaseClient();
-
-type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
+type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'market' | 'keywords' | 'trendRadar' | 'amazon';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -290,6 +275,33 @@ export default function App() {
     }
   };
 
+  // App.tsx içine eklenecek
+  const saveToHistory = async (title: string, data: any, type: ActiveTab) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('saved_reports')
+        .insert([
+          {
+            user_id: user.id,
+            title: title,
+            data: data, // Üretilen JSON içeriği
+            type: type, // 'amazon', 'optimizer' vb.
+            date: new Date().toISOString(),
+          }
+        ]);
+
+      if (error) throw error;
+    
+      // Dashboard'un yenilenmesi için tetikleyici (opsiyonel)
+      console.log("Geçmişe kaydedildi!");
+    } catch (err) {
+      console.error("Kaydedilirken hata oluştu:", err);
+    }
+  };
+
   // --- AUDIT ---
   const handleAudit = async (url: string, manualStats?: any) => {
     if (!await useCredit(1)) return;
@@ -342,7 +354,7 @@ export default function App() {
     }
   };
 
-  const isVisible = (id: string) => activeTab === id ? 'block' : 'hidden';
+  const isVisible = (tab: ActiveTab) => activeTab === tab ? 'block' : 'hidden';
 
   // --- LOADING STATE ---
   if (loading) {
@@ -403,6 +415,7 @@ export default function App() {
           <main className="flex-1 overflow-y-auto p-2 md:p-4 scroll-smooth bg-[#0B0F19]">
             <div className="max-w-[1200px] mx-auto w-full space-y-4">
               
+              {/* DASHBOARD */}
               <div className={isVisible('dashboard')}>
                 <Dashboard 
                   lang={lang} 
@@ -413,7 +426,6 @@ export default function App() {
                   onNewListing={() => setActiveTab('optimizer')} 
                   onNewMarket={() => setActiveTab('market')} 
                   onGoToLaunchpad={() => setActiveTab('launchpad')} 
-                  onGoToReelGen={() => setActiveTab('reelGen')} 
                   onGoToTrendRadar={() => setActiveTab('trendRadar')} 
                   onLoadReport={(record) => {
                     if (record.type === 'audit') {
@@ -425,6 +437,7 @@ export default function App() {
                 />
               </div>
 
+              {/* AUDIT */}
               <div className={isVisible('audit')}>
                 {!auditResult ? (
                   <>
@@ -457,39 +470,53 @@ export default function App() {
                 )}
               </div>
 
-              <div className={isVisible('optimizer')}>
-                <ListingOptimizer initialData={optimizerData} />
-              </div>
+              {/* OPTIMIZER */}
+			  <div className={isVisible('optimizer')}>
+			    <ListingOptimizer 
+				  initialData={optimizerData} 
+				  onSave={(result) => saveToHistory(result.title || 'Etsy Listing', result, 'optimizer')}
+			    />
+			  </div>
+
+              {/* COMPETITOR */}
               <div className={isVisible('competitor')}>
                 <CompetitorAnalyzer />
               </div>
+
+              {/* MARKET */}
               <div className={isVisible('market')}>
                 <GlobalMarketAnalyzer lang={lang} />
               </div>
+
+              {/* KEYWORDS */}
               <div className={isVisible('keywords')}>
                 <KeywordResearch lang={lang} />
               </div>
+              
+              {/* LAUNCHPAD */}
               <div className={isVisible('launchpad')}>
                 <ProductLaunchpad 
                   auditResult={auditResult} 
                   onUseForListing={handleOptimizerTransfer} 
                 />
               </div>
+
+              {/* TREND RADAR */}
               <div className={isVisible('trendRadar')}>
-                <TrendRadar lang={lang} onUseTrend={handleOptimizerTransfer} />
-              </div>
-              <div className={isVisible('newShop')}>
-                <NewShopStarter lang={lang} />
-              </div>
-              <div className={isVisible('reelGen')}>
-                <ReelGen 
+                <TrendRadar 
                   lang={lang} 
-                  userCredits={userProfile?.credits || 0} 
-                  userPlan={userProfile?.plan || 'free'} 
-                  onDeductCredit={useCredit} 
-                  onOpenSubscription={() => setShowSubscriptionModal(true)} 
+                  onUseTrend={handleOptimizerTransfer}
+                  useCredit={useCredit}
                 />
               </div>
+
+              {/* AMAZON GENERATOR */}
+			  <div className={isVisible('amazon')}>
+			    <AmazonGenerator 
+				  lang={lang} 
+				  onSave={(result) => saveToHistory(result.title || 'Amazon Listing', result, 'amazon')}
+			    />
+			  </div>
 
             </div>
           </main>

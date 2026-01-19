@@ -7,7 +7,7 @@ import {
     UserIcon, CreditCardIcon, InfoIcon, SettingsIcon, FireIcon, VideoIcon
 } from './icons';
 
-type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
+type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'market' | 'keywords' | 'trendRadar' | 'amazon';
 
 // Define the Lock Icon locally for the sidebar
 const LockIcon: React.FC<{className?: string}> = ({ className }) => (
@@ -49,17 +49,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     
     // Feature Gating Logic - EXCLUSIVE LOCKS
     const isFeatureLocked = (id: string) => {
-        // 1. Free Plan Locks
+        // 1. Free Plan Locks (Sadece Dashboard ve Amazon dışındaki temel her şey kilitli)
         if (!userPlan || userPlan === 'free') {
-            return ['keywords', 'market', 'competitor', 'audit', 'optimizer', 'launchpad', 'trendRadar', 'reelGen'].includes(id); 
+            return ['keywords', 'market', 'competitor', 'audit', 'optimizer', 'launchpad', 'trendRadar', 'amazon'].includes(id); 
         }
-        // 2. Starter Plan Locks
+        // 2. Starter Plan Locks (Amazon Engine'e erişim var, ama Trend Radar ve Market kilitli)
         if (userPlan === 'starter') {
-            return ['market', 'competitor', 'launchpad', 'trendRadar', 'reelGen'].includes(id);
+            return ['market', 'competitor', 'launchpad', 'trendRadar'].includes(id);
         }
-        // 3. Growth Plan Locks
+        // 3. Growth Plan Locks (Sadece Trend Radar kilitli)
         if (userPlan === 'growth') {
-            return ['trendRadar', 'reelGen'].includes(id);
+            return ['trendRadar'].includes(id);
         }
         
         return false; // Agency has access to everything
@@ -95,9 +95,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title: lang === 'tr' ? 'ÜRETİM & OPTİMİZASYON' : 'CREATE & OPTIMIZE',
             items: [
                 { id: 'optimizer', label: lang === 'tr' ? 'Listing Yazarı' : 'Listing Generator', icon: GeneratorIcon, tourId: 'nav-optimizer' },
-                { id: 'reelGen', label: lang === 'tr' ? 'Video Studio' : 'Video Studio', icon: VideoIcon, highlight: true }, // NEW
+                { id: 'amazon', label: "Amazon Engine", icon: RocketIcon, highlight: true, isNew: true }, // 🔥 BURASI EKLENDİ
                 { id: 'launchpad', label: lang === 'tr' ? 'Görsel Test' : 'Visual Tester', icon: RocketIcon },
-                { id: 'newShop', label: lang === 'tr' ? 'İsim & Fikir' : 'Name & Idea', icon: LightbulbIcon },
             ]
         }
     ];
@@ -122,9 +121,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 `}
             >
                 <div className="flex items-center gap-3">
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : item.highlight ? 'text-green-500' : 'text-slate-500 group-hover:text-white'}`} />
-                    <span className="font-medium text-sm">{item.label}</span>
-                </div>
+					<Icon className={`w-5 h-5 ${isActive ? 'text-white' : item.highlight ? 'text-green-500' : 'text-slate-500 group-hover:text-white'}`} />
+					<span className="font-medium text-sm">{item.label}</span>
+					
+					{/* 🔥 EKLEDİĞİMİZ SATIR BURASI: Amazon modülü için turuncu NEW etiketi */}
+					{item.id === 'amazon' && (
+						<span className="ml-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase animate-pulse">
+							NEW
+						</span>
+					)}
+				</div>
                 
                 {isActive && (
                     <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div>
@@ -132,8 +138,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 
                 {isLocked && (
                     <div className="flex items-center gap-1">
-                        {(item.id === 'trendRadar' || item.id === 'reelGen') && <span className="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">Pro</span>}
-                        <LockIcon className="w-3.5 h-3.5 text-gray-500 group-hover:text-orange-400 transition-colors" />
+						{/* Amazon kilitliyse (Free kullanıcı), ona özel bir etiket gösterilebilir */}
+						{item.id === 'amazon' && !isActive && (
+							<span className="text-[9px] font-bold bg-orange-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
+								Starter+
+							</span>
+						)}
+						
+						{/* Diğer kilitli modüller için Pro etiketi */}
+						{item.id === 'trendRadar' && (
+							<span className="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
+								Growth+
+							</span>
+						)}
+						
+						<LockIcon className="w-3.5 h-3.5 text-gray-500 group-hover:text-orange-400 transition-colors" />
                     </div>
                 )}
             </button>
@@ -197,7 +216,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {/* Footer / User Profile */}
                 <div className="p-4 border-t border-slate-800 bg-[#0B1120]">
                     {credits !== undefined && (
-                        <div id="nav-credits-container" className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 mb-4">
+						<div id="nav-credits" className="bg-slate-800/50 rounded-xl p-4 border border-slate-700 mb-4">						
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-xs text-slate-400 font-medium capitalize">
                                     {userPlan} Plan
@@ -215,6 +234,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             </div>
 
                             <button 
+								id="nav-upgrade"
                                 onClick={onOpenSubscription}
                                 className="w-full py-2 bg-white text-slate-900 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
                             >

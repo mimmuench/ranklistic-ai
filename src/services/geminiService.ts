@@ -2,8 +2,29 @@
 import { GoogleGenAI } from "@google/genai";
 import type { AuditItem, ChatMessage, CompetitorAnalysisResult, MarketAnalysisResult, ListingOptimizerResult } from '../types';
 
-// API Key doğrudan process.env'den alınır.
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
+
+// ✅ Helper fonksiyon en üstte
+const validateQuality = (result: ListingOptimizerResult): string[] => {
+    const errors: string[] = [];
+    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
+    const uniqueWords = new Set(titleWords.filter(w => w.length > 3));
+    if (titleWords.length !== uniqueWords.size + titleWords.filter(w => w.length <= 3).length) {
+        errors.push("❌ Title contains repeated words");
+    }
+    const bannedPhrases = ["stunning", "elevate", "perfect for any", "exquisite", "must-have", "game-changer", "unleash", "meticulously"];
+    const descLower = result.newDescription.toLowerCase();
+    bannedPhrases.forEach(phrase => {
+        if (descLower.includes(phrase)) {
+            errors.push(`❌ Description contains banned AI jargon: "${phrase}"`);
+        }
+    });
+    const longTailCount = result.hashtags.filter(tag => tag.split(' ').length >= 2).length;
+    if (longTailCount < 7) {
+        errors.push(`⚠️ Only ${longTailCount}/13 tags are long-tail (need 7+)`);
+    }
+    return errors;
+};
 
 export const cleanJsonString = (str: string): string => {
     if (!str) return "{}";
@@ -58,45 +79,6 @@ const buildChatContents = (history: ChatMessage[], currentMessage: string, curre
     return contents;
 };
 
-// --- NEW: VEO VIDEO GENERATION ---
-export const generateProductVideo = async (imageBase64: string, promptText: string): Promise<string> => {
-    try {
-        console.log("Starting Video Generation with Veo...");
-        
-        let operation = await ai.models.generateVideos({
-            model: 'veo-3.1-fast-generate-preview', // Fastest model for demo
-            prompt: promptText,
-            image: {
-                imageBytes: imageBase64,
-                mimeType: 'image/jpeg' // Assuming jpeg for simplicity
-            },
-            config: {
-                numberOfVideos: 1,
-                resolution: '720p',
-                aspectRatio: '9:16' // Reel Format
-            }
-        });
-
-        console.log("Operation started:", operation);
-
-        // Polling loop
-        while (!operation.done) {
-            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
-            operation = await ai.operations.getVideosOperation({ operation: operation });
-            console.log("Polling status:", operation.metadata?.state);
-        }
-
-        const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
-        if (!videoUri) throw new Error("No video URI returned.");
-
-        // IMPORTANT: Append API Key for access
-        return `${videoUri}&key=${import.meta.env.VITE_GOOGLE_API_KEY}`;
-
-    } catch (error) {
-        console.error("Video Gen Error:", error);
-        throw error;
-    }
-};
 
 // ... (Rest of existing functions: runEtsyAudit, getChatResponse, generateListingContent, etc.) ...
 export const runEtsyAudit = async (shopUrl: string, manualStats?: any): Promise<string> => {
@@ -255,6 +237,17 @@ Write:
 **IMPORTANT:** Follow the exact section headers from the template, but fill them with natural, non-robotic language.
 
 ---
+
+**CRITICAL INSTRUCTION:** You MUST follow the user's template structure EXACTLY. 
+Do NOT skip sections, do NOT merge sections, do NOT change the emoji headers.
+
+**TONE RULES:**
+- Use first person ("We laser-etch...", "We chose...")
+- Include small moments of humility or humor ("Overkill? Maybe.")
+- Explain the "why" behind features, not just the "what"
+
+**Example of the EXACT tone we want:**
+"**3D Floating Effect** – Designed with hidden spacers that push the art 1.5cm off the wall. This creates natural drop shadows that mimic the desert sun moving across the landscape."
 
 ### ✅ HASHTAG STRATEGY (CRITICAL - 13 TAGS REQUIRED):
 You MUST provide exactly 13 tags following this distribution:
@@ -495,52 +488,166 @@ export const analyzeProductImage = async (base64: string, promptText: string, ni
 
 export const generateDemoTitle = async (input: string): Promise<string> => {
     const prompt = `
-    Act as a World-Class Etsy SEO Strategist (2026 Algorithm Expert).
-    
-    Task: Convert the input into a single, high-converting Etsy Title.
-    
-    **STRICT 2026 SEO RULES:**
-    1. **Strict Zero Repetition:** DO NOT use the same word twice. If you use "Metal", do not use it again. If you use "Art", do not use it again. (Exception: tiny words like 'and', 'with').
-    2. **Readable Flow:** No "dash-dash-dash" strings. Use commas (,) and create a natural sentence-like flow that a human enjoys reading.
-    3. **The 40-Character Hook:** The most important product identifier MUST be in the first 40 characters.
-    4. **No Keyword Stuffing:** Focus on the "vibe" and "utility" rather than synonyms.
-    5. **Formula:** [Primary Product & Material] with [Unique Detail], [Aesthetic Style] [Category Keyword], [Gift Occasion]
-    
-    Input: "${input}"
-    
-    **OUTPUT REQUIREMENT:** Return ONLY the plain text of the title. No quotes, no intro, no "Here is your title". Just the text.
-    `;
-    
-    const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: prompt
-    });
-    return response.text?.trim() || input;
-};
+You are the #1 Etsy SEO strategist who has generated $50M+ in sales for handmade sellers.
 
-export const generateShopNames = async (niche: string, vibe: string, lang: 'en' | 'tr'): Promise<string> => {
-    const prompt = `Generate 5 creative Etsy shop names for:
-    Niche: ${niche}
-    Vibe: ${vibe}
-    Language: ${lang}
-    
-    Return JSON:
-    {
-        "names": [
-            { "name": "Name 1", "reasoning": "Why this works..." },
-            ...
-        ]
-    }
-    `;
-    
+**MISSION:** Convert this simple input into a MAGNETIC Etsy title that makes people click.
+
+**INPUT:** "${input}"
+
+---
+
+### 🎯 2026 ETSY ALGORITHM RULES (MOBILE-FIRST):
+
+**TITLE FORMULA:**
+[Emotional Hook/Specific Detail] [Primary Keyword] [Material/Technique] [Style Descriptor] [Use Case/Gift Angle]
+
+**CRITICAL SUCCESS FACTORS:**
+
+1. **ZERO REPETITION RULE:**
+   - NEVER use the same word twice (except "and", "with", "for")
+   - ❌ BAD: "Metal Wall Art, Steel Wall Decor, Modern Wall Hanging"
+   - ✅ GOOD: "Mojave Sunset Saguaro Scene, Laser-Cut Steel Desert Landscape"
+
+2. **MOBILE-FIRST HOOK (First 40 Chars):**
+   - Most shoppers see ONLY the first 40 characters on mobile
+   - Put your MOST UNIQUE/EMOTIONAL keyword here
+   - ❌ BAD: "Handmade Personalized Custom Unique..."
+   - ✅ GOOD: "Moonlit Forest Cabin Print, Watercolor..."
+
+3. **HUMAN READABILITY:**
+   - Use commas (,) not dashes (-)
+   - Should read like a sentence, not a robot list
+   - ❌ BAD: "Necklace-Gold-Minimalist-Dainty-Gift"
+   - ✅ GOOD: "Crescent Moon Gold Necklace, Dainty Layering Pendant"
+
+4. **SENSORY + SPECIFIC:**
+   - Use texture, color, size, feeling words
+   - Be hyper-specific, not generic
+   - ❌ BAD: "Beautiful Vintage Mug"
+   - ✅ GOOD: "1970s Amber Glass Coffee Mug, Retro Mushroom Design"
+
+5. **CHARACTER LIMIT:** 
+   - Max 140 characters (Etsy's hard limit)
+   - Aim for 120-135 for best mobile display
+
+---
+
+### 🏆 CATEGORY-SPECIFIC EXAMPLES:
+
+**Metal/Wood Art:**
+❌ "Metal Wall Art Decor for Home"
+✅ "Desert Sunset Saguaro Scene, Hand-Cut Steel Wall Sculpture, Southwest Boho Decor"
+
+**Jewelry:**
+❌ "Gold Necklace Pendant Jewelry"
+✅ "Tiny Crescent Moon Necklace, 14K Gold Vermeil Lunar Charm, Delicate Layering Piece"
+
+**Apparel:**
+❌ "Funny Cat T-Shirt Gift"
+✅ "Vintage Cat Mom Graphic Tee, Retro 70s Style, Soft Ring-Spun Cotton, Gift for Her"
+
+**Digital Prints:**
+❌ "Printable Wall Art Poster"
+✅ "Moody Forest Cabin Print, Dark Academia Watercolor, Instant Download, 5 Sizes Included"
+
+**Ceramics/Pottery:**
+❌ "Handmade Coffee Mug Pottery"
+✅ "Ocean Wave Stoneware Mug, Hand-Thrown Blue Glaze, Microwave Safe, 12oz Capacity"
+
+**Home Decor:**
+❌ "Rustic Wood Sign Decor"
+✅ "Farmhouse Kitchen Sign, Distressed White Oak, Hand-Painted Script, Vintage Charm"
+
+---
+
+### 🧠 STRATEGIC THINKING PROCESS:
+
+**Before you write, ask yourself:**
+
+1. **What makes this DIFFERENT?** (Not "handmade mug" but "ocean wave hand-thrown mug")
+2. **What's the VIBE?** (Boho? Minimalist? Vintage? Dark Academia?)
+3. **Who is the BUYER?** (New homeowner? Gift-giver? College student?)
+4. **What's the FIRST visual?** (Sunset? Forest? Geometric pattern?)
+
+**Use this hierarchy:**
+1. UNIQUE VISUAL/FEELING (Moonlit, Vintage, Geometric, Rustic)
+2. PRODUCT TYPE (Necklace, Mug, Print, Sign)
+3. MATERIAL/TECHNIQUE (Hand-Cut Steel, Watercolor, 14K Gold)
+4. STYLE (Boho, Minimalist, Industrial, Farmhouse)
+5. USE CASE (Gift, Layering, Kitchen Decor, Wall Art)
+
+---
+
+### 📤 OUTPUT RULES:
+
+1. Return ONLY the title text
+2. No quotes, no intro phrase, no "Here is..."
+3. No markdown formatting
+4. Must be 120-140 characters
+5. Must pass the "Would I click this on mobile?" test
+
+---
+
+### 🔍 QUALITY CHECK (Before responding):
+
+Ask yourself:
+- ❌ Did I repeat any word? (If yes → REWRITE)
+- ❌ Is the first 40 chars generic? (If yes → ADD EMOTION)
+- ❌ Would this title blend in with 100 others? (If yes → BE MORE SPECIFIC)
+- ✅ Does it paint a clear mental image? (If no → ADD SENSORY DETAIL)
+- ✅ Would I click this on my phone? (If no → START OVER)
+
+---
+
+**EXAMPLES OF TRANSFORMATIONS:**
+
+Input: "wooden cutting board"
+❌ Weak: "Handmade Wooden Cutting Board Kitchen Decor"
+✅ STRONG: "Live Edge Walnut Cutting Board, Hand-Oiled Charcuterie Platter, Rustic Kitchen Gift"
+
+Input: "cat drawing"
+❌ Weak: "Cat Art Print Digital Download"
+✅ STRONG: "Watercolor Tabby Cat Portrait, Soft Pastel Fine Art Print, Instant Digital Download"
+
+Input: "minimalist necklace"
+❌ Weak: "Minimalist Gold Necklace Jewelry Gift"
+✅ STRONG: "Floating Diamond Necklace, 14K Gold Solitaire, Dainty Everyday Pendant, Bridal Gift"
+
+---
+
+**NOW GENERATE THE TITLE FOR:** "${input}"
+
+Remember: This is a DEMO on a landing page. It needs to make visitors say "Wow, I need this tool!"
+`;
+
     const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-2.0-flash-exp", // 🔥 En yeni modeli kullan
         contents: prompt,
-        config: { responseMimeType: "application/json" }
+        config: {
+            temperature: 0.8, // Biraz daha yaratıcı olsun
+            maxOutputTokens: 200, // Title kısa olmalı
+            candidateCount: 1
+        }
     });
-
-    return cleanJsonString(response.text || "{}");
+    
+    const rawText = response.text?.trim() || input;
+    
+    // 🔥 EKSTRA TEMİZLİK: Bazen AI tırnak işareti veya "Here is..." gibi şeyler ekliyor
+    let cleanedTitle = rawText
+        .replace(/^["']|["']$/g, '') // Başta/sonda tırnak varsa sil
+        .replace(/^Here is your title:?\s*/i, '') // "Here is your title:" silme
+        .replace(/^Title:?\s*/i, '') // "Title:" silme
+        .replace(/^\*\*|\*\*$/g, '') // Markdown bold işaretleri
+        .trim();
+    
+    // 🔥 140 karakter kontrolü
+    if (cleanedTitle.length > 140) {
+        cleanedTitle = cleanedTitle.substring(0, 137) + '...';
+    }
+    
+    return cleanedTitle || input;
 };
+
 
 export const analyzeBusinessIdea = async (idea: string, origin: string, lang: 'en' | 'tr'): Promise<string> => {
     const prompt = `Analyze this Etsy business idea:
@@ -794,36 +901,3 @@ export const generateSocialPosts = async (productTitle: string, platform: 'insta
   });
   return response.text || "";
 };
-
-// generateListingContent fonksiyonundan SONRA:
-const validateQuality = (result: ListingOptimizerResult): string[] => {
-    const errors: string[] = [];
-    
-    // Title validation
-    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
-    const uniqueWords = new Set(titleWords.filter(w => w.length > 3)); // Ignore "and", "for"
-    if (titleWords.length !== uniqueWords.size + titleWords.filter(w => w.length <= 3).length) {
-        errors.push("❌ Title contains repeated words");
-    }
-    
-    // AI Jargon detection
-    const bannedPhrases = [
-        "stunning", "elevate", "perfect for any", "exquisite", 
-        "must-have", "game-changer", "unleash", "meticulously"
-    ];
-    const descLower = result.newDescription.toLowerCase();
-    bannedPhrases.forEach(phrase => {
-        if (descLower.includes(phrase)) {
-            errors.push(`❌ Description contains banned AI jargon: "${phrase}"`);
-        }
-    });
-    
-    // Hashtag quality check
-    const longTailCount = result.hashtags.filter(tag => tag.split(' ').length >= 2).length;
-    if (longTailCount < 7) {
-        errors.push(`⚠️ Only ${longTailCount}/13 tags are long-tail (need 7+)`);
-    }
-    
-    return errors;
-};
-
