@@ -63,15 +63,39 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
       
       console.log('📦 Parsed Result:', parsed);
       
-      if (!parsed.backendKeywords || parsed.backendKeywords === 'undefined') {
-        parsed.backendKeywords = 'metal wall art steel decor home decoration laser cut hanging sculpture modern design angel wings memorial gift';
+      // 1. SEARCH TERMS TEMİZLİĞİ (Mimar Dokunuşu & Virgül Ekleme)
+      let cleanKeywords = (parsed.backendKeywords || parsed.searchTerms || "")
+        .replace(/[a-z][A-Z]/g, (match: string) => match[0] + " " + match[1]) 
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ') 
+        .split(/\s+/) 
+        .filter((v: string, i: number, a: string[]) => v.length > 1 && a.indexOf(v) === i) 
+        .join(', '); // Aralara virgül eklendi
+
+      if (!cleanKeywords || cleanKeywords === 'undefined' || cleanKeywords.length < 10) {
+        cleanKeywords = 'metal wall art, steel decor, home decoration, laser cut, hanging sculpture, modern design';
       }
       
+      parsed.searchTerms = cleanKeywords;
+      parsed.backendKeywords = cleanKeywords;
+
+      // 2. DESCRIPTION VE A+ CONTENT KONTROLÜ
       if (!parsed.productDescription || parsed.productDescription === 'undefined' || parsed.productDescription.length < 100) {
-        parsed.productDescription = `Transform your living space with this stunning ${parsed.productIdentified || 'metal wall art'}. Crafted with precision laser-cutting technology, this piece combines durability with elegant design. Perfect for modern homes, offices, or as a thoughtful gift.\n\nMade from high-quality steel with a rust-resistant finish, this wall decor is built to last. The intricate design catches light beautifully and creates visual interest from every angle.\n\nEasy installation with pre-drilled mounting holes. Hardware not included. Clean with a soft, dry cloth. Suitable for indoor use.\n\nIdeal for living rooms, bedrooms, offices, entryways, or galleries. Makes an excellent housewarming, wedding, or anniversary gift. Our products are backed by quality craftsmanship and customer satisfaction guarantee.`;
+        parsed.productDescription = `Transform your living space with this stunning ${parsed.productIdentified || 'metal wall art'}. Crafted with precision laser-cutting technology, this piece combines durability with elegant design.`;
+      }
+      
+      parsed.description = parsed.productDescription;
+
+      // A+ Content Fallback (Eğer AI boş bırakırsa)
+      if (!parsed.aPlusSuggestions || parsed.aPlusSuggestions === 'undefined') {
+        parsed.aPlusSuggestions = "• Use high-quality lifestyle images showing the product in a modern living room or office.\n• Highlight the 1.5mm premium steel material and rust-resistant matte finish.\n• Showcase the unique 3D shadow effect created by the wall spacers.\n• Emphasize the artisan craftsmanship and reinforced protective packaging.";
       }
       
       setResult(parsed);
+      
+      // 3. DASHBOARD KAYDI
+      if (onSave) onSave(parsed);
+
     } catch (e) {
       console.error('Generation error:', e);
       setError('Failed to generate listing. Please try again.');
@@ -319,7 +343,8 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
           <div className="flex gap-4">
             <button
               onClick={() => {
-                const text = `TITLE:\n${result.title}\n\nBULLET POINTS:\n${result.bulletPoints.join('\n')}\n\nDESCRIPTION:\n${result.productDescription}\n\nSEARCH TERMS:\n${result.backendKeywords}`;
+                // Değişken isimlerini güncelledik: description ve searchTerms
+                const text = `TITLE:\n${result.title}\n\nBULLET POINTS:\n${result.bulletPoints?.join('\n')}\n\nDESCRIPTION:\n${result.description}\n\nSEARCH TERMS:\n${result.searchTerms}`;
                 navigator.clipboard.writeText(text);
                 alert(lang === 'tr' ? 'Panoya kopyalandı!' : 'Copied to clipboard!');
               }}
@@ -329,7 +354,7 @@ export const AmazonGenerator: React.FC<AmazonGeneratorProps> = ({ lang }) => {
             </button>
             <button
               onClick={handleReset}
-              className="flex-1 bg-[#0B0F19] hover:bg-[#141B2B] text-white font-semibold py-3 rounded-lg border border-gray-700 transition-colors"
+              className="flex-1 bg-[#0B0F19] hover:bg-[#141B2B] text-white font-semibold py-3 rounded-lg border border-gray-800 transition-colors"
             >
               {lang === 'tr' ? 'Yeni İlan' : 'New Listing'}
             </button>

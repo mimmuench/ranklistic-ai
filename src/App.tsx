@@ -428,11 +428,14 @@ export default function App() {
                   onGoToLaunchpad={() => setActiveTab('launchpad')} 
                   onGoToTrendRadar={() => setActiveTab('trendRadar')} 
                   onLoadReport={(record) => {
-                    if (record.type === 'audit') {
-                      setAuditResult(record.data);
-                      setActiveTab('audit');
-                    }
-                  }} 
+				    if (record.type === 'audit') {
+					  setAuditResult(record.data);
+					  setActiveTab('audit');
+				    } else if (record.type === 'amazon') { // Amazon kayıtlarını yüklemek için
+					  setResult(record.data); // Amazon sonucunu state'e bas
+					  setActiveTab('amazon');
+				    }
+				  }} 
                   onOpenSubscription={() => setShowSubscriptionModal(true)} 
                 />
               </div>
