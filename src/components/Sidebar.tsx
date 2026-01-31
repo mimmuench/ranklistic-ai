@@ -7,7 +7,7 @@ import {
     UserIcon, CreditCardIcon, InfoIcon, SettingsIcon, FireIcon, VideoIcon
 } from './icons';
 
-type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'market' | 'keywords' | 'trendRadar' | 'amazon';
+type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'digital' | 'amazon' | 'competitor' | 'launchpad' | 'newShop' | 'market' | 'keywords' | 'trendRadar' | 'reelGen';
 
 // Define the Lock Icon locally for the sidebar
 const LockIcon: React.FC<{className?: string}> = ({ className }) => (
@@ -47,22 +47,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     
-    // Feature Gating Logic - EXCLUSIVE LOCKS
     const isFeatureLocked = (id: string) => {
-        // 1. Free Plan Locks (Sadece Dashboard ve Amazon dışındaki temel her şey kilitli)
         if (!userPlan || userPlan === 'free') {
-            return ['keywords', 'market', 'competitor', 'audit', 'optimizer', 'launchpad', 'trendRadar', 'amazon'].includes(id); 
+            return ['keywords', 'market', 'competitor', 'audit', 'optimizer', 'digital', 'amazon', 'launchpad', 'trendRadar', 'reelGen'].includes(id); 
         }
-        // 2. Starter Plan Locks (Amazon Engine'e erişim var, ama Trend Radar ve Market kilitli)
         if (userPlan === 'starter') {
-            return ['market', 'competitor', 'launchpad', 'trendRadar'].includes(id);
+            return ['market', 'competitor', 'launchpad', 'trendRadar', 'reelGen'].includes(id);
         }
-        // 3. Growth Plan Locks (Sadece Trend Radar kilitli)
         if (userPlan === 'growth') {
-            return ['trendRadar'].includes(id);
+            return ['trendRadar', 'reelGen'].includes(id);
         }
-        
-        return false; // Agency has access to everything
+        return false; 
     };
 
     const handleTabClick = (id: string) => {
@@ -78,14 +73,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
             title: lang === 'tr' ? 'GENEL BAKIŞ' : 'OVERVIEW',
             items: [
-                { id: 'dashboard', label: lang === 'tr' ? 'Panel' : 'Dashboard', icon: HomeIcon, tourId: 'nav-dashboard' }
+                { id: 'dashboard', label: lang === 'tr' ? 'Panel' : 'Dashboard', icon: HomeIcon }
             ]
         },
         {
             title: lang === 'tr' ? 'ARAŞTIRMA & ANALİZ' : 'RESEARCH & ANALYZE',
             items: [
                 { id: 'trendRadar', label: lang === 'tr' ? 'Trend Radar' : 'Trend Radar', icon: FireIcon, highlight: true }, 
-                { id: 'keywords', label: lang === 'tr' ? 'Kelime Avcısı' : 'Keyword Hunter', icon: KeyIcon, tourId: 'nav-research' },
+                { id: 'keywords', label: lang === 'tr' ? 'Kelime Avcısı' : 'Keyword Hunter', icon: KeyIcon },
                 { id: 'market', label: lang === 'tr' ? 'Global Pazar' : 'Global Market', icon: GlobeIcon },
                 { id: 'competitor', label: lang === 'tr' ? 'Rakip Casusu' : 'Competitor Spy', icon: ScaleIcon },
                 { id: 'audit', label: lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit', icon: SearchIcon },
@@ -94,9 +89,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {
             title: lang === 'tr' ? 'ÜRETİM & OPTİMİZASYON' : 'CREATE & OPTIMIZE',
             items: [
-                { id: 'optimizer', label: lang === 'tr' ? 'Listing Yazarı' : 'Listing Generator', icon: GeneratorIcon, tourId: 'nav-optimizer' },
-                { id: 'amazon', label: "Amazon Engine", icon: RocketIcon, highlight: true, isNew: true }, // 🔥 BURASI EKLENDİ
+                { id: 'optimizer', label: lang === 'tr' ? 'Etsy Fiziksel' : 'Etsy Physical', icon: GeneratorIcon },
+                { id: 'digital', label: lang === 'tr' ? 'Etsy Dijital' : 'Etsy Digital', icon: GeneratorIcon, highlight: true },
+                { id: 'amazon', label: lang === 'tr' ? 'Amazon A9' : 'Amazon A9', icon: GeneratorIcon },
+                { id: 'reelGen', label: lang === 'tr' ? 'Video Studio' : 'Video Studio', icon: VideoIcon }, 
                 { id: 'launchpad', label: lang === 'tr' ? 'Görsel Test' : 'Visual Tester', icon: RocketIcon },
+                { id: 'newShop', label: lang === 'tr' ? 'İsim & Fikir' : 'Name & Idea', icon: LightbulbIcon },
             ]
         }
     ];
@@ -108,7 +106,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         
         return (
             <button
-                id={item.tourId}
                 onClick={() => handleTabClick(item.id)}
                 className={`
                     w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group relative
@@ -116,15 +113,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-900/20' 
                         : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
                     }
-                    ${item.highlight && !isActive ? 'border border-green-500/30 bg-green-500/5 text-green-400 hover:bg-green-500/10' : ''}
+                    ${item.highlight && !isActive ? 'border border-yellow-500/30 bg-yellow-500/5 text-yellow-400 hover:bg-yellow-500/10' : ''}
                     ${isLocked ? 'opacity-70 hover:opacity-100' : ''}
                 `}
             >
                 <div className="flex items-center gap-3">
-					<Icon className={`w-5 h-5 ${isActive ? 'text-white' : item.highlight ? 'text-green-500' : 'text-slate-500 group-hover:text-white'}`} />
+					<Icon className={`w-5 h-5 ${isActive ? 'text-white' : item.highlight ? 'text-yellow-500' : 'text-slate-500 group-hover:text-white'}`} />
 					<span className="font-medium text-sm">{item.label}</span>
 					
-					{/* 🔥 EKLEDİĞİMİZ SATIR BURASI: Amazon modülü için turuncu NEW etiketi */}
+					{/* 🔥 Amazon modülü için turuncu NEW etiketi */}
 					{item.id === 'amazon' && (
 						<span className="ml-1 bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase animate-pulse">
 							NEW
@@ -138,14 +135,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 
                 {isLocked && (
                     <div className="flex items-center gap-1">
-						{/* Amazon kilitliyse (Free kullanıcı), ona özel bir etiket gösterilebilir */}
+						{/* Amazon kilitliyse (Free kullanıcı), ona özel bir etiket */}
 						{item.id === 'amazon' && !isActive && (
 							<span className="text-[9px] font-bold bg-orange-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
 								Starter+
 							</span>
 						)}
 						
-						{/* Diğer kilitli modüller için Pro etiketi */}
+						{/* TrendRadar için Growth+ etiketi */}
 						{item.id === 'trendRadar' && (
 							<span className="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">
 								Growth+

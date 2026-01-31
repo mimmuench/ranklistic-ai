@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SearchIcon, RocketIcon, TrashIcon, HistoryIcon, GeneratorIcon, ScaleIcon, FireIcon, VideoIcon, SparklesIcon, CameraIcon } from './icons';
+import { SearchIcon, GlobeIcon, RocketIcon, TrashIcon, HistoryIcon, GeneratorIcon, ScaleIcon, CheckCircleIcon, FireIcon, VideoIcon, SparklesIcon, CameraIcon, BrandIcon } from './icons';
 import { supabase } from '../services/client'; // ✅ DÜZELTİLDİ: Doğru import yolu
 import type { SavedRecord } from '../types';
 
@@ -9,17 +9,21 @@ interface DashboardProps {
     onNewAudit: () => void;
     onNewMarket: () => void;
     onNewListing: () => void;
+    onNewAmazon: () => void;
+    onNewDigital: () => void;
     userCredits: number;
     userPlan?: string;
     onOpenSubscription?: () => void;
     setActiveTab: (tab: any) => void;
     onGoToLaunchpad?: () => void;
+    onGoToReelGen?: () => void;
     onGoToTrendRadar?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
-    lang, onLoadReport, onNewAudit, onNewListing, userCredits, userPlan, onOpenSubscription,
-    setActiveTab, onGoToLaunchpad, onGoToTrendRadar
+    lang, onLoadReport, onNewAudit, onNewMarket, onNewListing, onNewAmazon, onNewDigital,
+    userCredits, userPlan, onOpenSubscription,
+    setActiveTab, onGoToLaunchpad, onGoToReelGen, onGoToTrendRadar
 }) => {
     const [history, setHistory] = useState<SavedRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +68,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
         }
     };
 
+    const getRecordIcon = (type: string) => {
+        switch (type) {
+            case 'audit': return <SearchIcon className="w-5 h-5 text-blue-400" />;
+            case 'listing': return <GeneratorIcon className="w-5 h-5 text-orange-400" />;
+            case 'amazon': return <BrandIcon className="w-5 h-5 text-yellow-500" />;
+            case 'digital': return <RocketIcon className="w-5 h-5 text-indigo-400" />;
+            case 'trend': return <FireIcon className="w-5 h-5 text-green-400" />;
+            default: return <HistoryIcon className="w-5 h-5 text-gray-400" />;
+        }
+    };
+
     const handleLockedAction = (action: () => void, requiredPlan: 'starter' | 'growth') => {
         if (!userPlan || userPlan === 'free') {
              if (onOpenSubscription) onOpenSubscription();
@@ -96,34 +111,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         coreTitle: lang === 'tr' ? 'Temel Araçlar' : 'Core Essentials',
         audit: lang === 'tr' ? 'Mağaza Denetimi' : 'Shop Audit',
+        amazon: lang === 'tr' ? 'Amazon A9' : 'Amazon A9',
+        digital: lang === 'tr' ? 'Etsy Dijital' : 'Etsy Digital',
         spy: lang === 'tr' ? 'Rakip Casusu' : 'Competitor Spy',
         history: lang === 'tr' ? 'Son İşlemler' : 'Recent Activity',
         loading: lang === 'tr' ? 'Veriler yükleniyor...' : 'Loading data...'
     };
 
     return (
-        <div className="space-y-6 animate-fade-in pb-10 no-print">
+        <div className="space-y-10 animate-fade-in pb-20 no-print">
             
             {/* HERO HEADER */}
-            <div className="flex flex-col md:flex-row justify-between items-end gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-1 tracking-tight">
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">
                         {t.greeting}
                     </h1>
-                    <p className="text-slate-400 text-sm max-w-xl leading-relaxed">
+                    <p className="text-slate-400 text-lg max-w-2xl leading-relaxed">
                         {t.subtitle}
                     </p>
-                </div>               
+                </div>
+                <div className="hidden md:flex items-center gap-4 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-4 shadow-xl">
+                    <div className="text-right">
+                        <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">Available Credits</div>
+                        <div className="text-2xl font-black text-white">{userCredits}</div>
+                    </div>
+                    <button onClick={onOpenSubscription} className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-orange-500/20">
+                        <span className="text-white font-bold text-xl">+</span>
+                    </button>
+                </div>
             </div>
 			
             {/* KILLER FEATURES */}
-            <div className="grid lg:grid-cols-3 gap-4">
+            <div className="grid lg:grid-cols-3 gap-6">
                 
                 {/* CARD 1: VISUAL LISTING WRITER */}
                 <div 
                     id="tour-visual-writer" // ✅ ID EKLENDİ
                     onClick={onNewListing}
-                    className="group relative h-64 bg-[#0F172A] border border-gray-800 hover:border-pink-500/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-pink-900/20 cursor-pointer"
+                    className="group relative h-80 bg-[#0F172A] border border-gray-800 hover:border-pink-500/50 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-pink-900/20 cursor-pointer"
                 >
                     <div className="absolute inset-0 z-0">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-pink-600/10 rounded-full blur-3xl group-hover:bg-pink-600/20 transition-colors"></div>
@@ -141,59 +167,53 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
-                        <div className="flex justify-between items-center mb-1">
-                            <div className="p-1.5 bg-pink-500/20 rounded-lg">
-                                <SparklesIcon className="w-5 h-5 text-pink-500" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="p-2 bg-pink-500/20 rounded-lg">
+                                <SparklesIcon className="w-6 h-6 text-pink-500" />
                             </div>
-                            <span className="text-[9px] font-extrabold bg-pink-600 text-white px-2 py-0.5 rounded uppercase tracking-wider shadow-lg shadow-pink-900/50">
+                            <span className="text-[10px] font-extrabold bg-pink-600 text-white px-2 py-1 rounded uppercase tracking-wider">
                                 {t.f1Badge}
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-0.5">{t.f1Title}</h3>
-                        <p className="text-[11px] text-gray-400 leading-snug">{t.f1Desc}</p>
+                        <h3 className="text-xl font-bold text-white mb-1">{t.f1Title}</h3>
+                        <p className="text-sm text-gray-400 leading-snug">{t.f1Desc}</p>
                     </div>
                 </div>
 				
-                {/* CARD 2: AMAZON ENGINE (ReelGen Yerine Geldi) */}
-				<div 
-					id="nav-amazon" // Turun bulacağı ID
-					onClick={() => setActiveTab('amazon')}
-					className="group relative h-64 bg-[#0F172A] border border-gray-800 hover:border-orange-500/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-orange-900/20 cursor-pointer"
-				>
-					<div className="absolute inset-0 z-0">
-						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-orange-600/10 rounded-full blur-3xl group-hover:bg-orange-600/20 transition-colors"></div>
-						<div className="absolute inset-0 flex flex-col items-center justify-center pb-10 opacity-80 group-hover:opacity-100 transition-opacity">
-							<RocketIcon className="w-12 h-12 text-orange-500 mb-3 animate-bounce" />
-							<div className="flex gap-1">
-								<div className="w-8 h-1 bg-orange-500/30 rounded-full"></div>
-								<div className="w-12 h-1 bg-orange-500/60 rounded-full"></div>
-								<div className="w-6 h-1 bg-orange-500/30 rounded-full"></div>
-							</div>
-						</div>
-					</div>
+                {/* CARD 2: REELGEN VIDEO STUDIO */}
+                <div 
+                    onClick={onGoToReelGen}
+                    className="group relative h-80 bg-[#0F172A] border border-gray-800 hover:border-purple-500/50 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-purple-900/20 cursor-pointer"
+                >
+                    <div className="absolute inset-0 z-0">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl group-hover:bg-purple-600/20 transition-colors"></div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pb-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                            <div className="w-14 h-14 rounded-full border-2 border-purple-500/50 flex items-center justify-center mb-3 bg-black/30 backdrop-blur-sm">
+                                <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-purple-500 border-b-[8px] border-b-transparent ml-1"></div>
+                            </div>
+                        </div>
+                    </div>
 
-					<div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
-						<div className="flex justify-between items-center mb-1">
-							<div className="p-1.5 bg-orange-500/20 rounded-lg">
-								<RocketIcon className="w-5 h-5 text-orange-500" />
-							</div>
-							<span className="text-[9px] font-extrabold bg-orange-600 text-white px-2 py-0.5 rounded uppercase tracking-wider shadow-lg">
-								{lang === 'tr' ? 'AMAZON ÖZEL' : 'AMAZON SPECIAL'}
-							</span>
-						</div>
-						<h3 className="text-lg font-bold text-white mb-0.5">Amazon Engine</h3>
-						<p className="text-[11px] text-gray-400 leading-snug">
-							{lang === 'tr' ? 'Fotoğraftan saniyeler içinde Amazon Handmade listingleri üret.' : 'Generate Amazon listings from photos in seconds.'}
-						</p>
-					</div>
-				</div>
-				
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="p-2 bg-purple-500/20 rounded-lg">
+                                <VideoIcon className="w-6 h-6 text-purple-500" />
+                            </div>
+                            <span className="text-[10px] font-extrabold bg-purple-600 text-white px-2 py-1 rounded uppercase tracking-wider">
+                                {t.f2Badge}
+                            </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-1">{t.f2Title}</h3>
+                        <p className="text-sm text-gray-400 leading-snug">{t.f2Desc}</p>
+                    </div>
+                </div>
+                
                 {/* CARD 3: TREND RADAR */}
                 <div 
                     id="tour-trend-radar" // ✅ ID EKLENDİ
                     onClick={onGoToTrendRadar}
-                    className="group relative h-64 bg-[#0F172A] border border-gray-800 hover:border-green-500/50 rounded-2xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-green-900/20 cursor-pointer"
+                    className="group relative h-80 bg-[#0F172A] border border-gray-800 hover:border-green-500/50 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-green-900/20 cursor-pointer"
                 >
                     <div className="absolute inset-0 z-0">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-green-600/10 rounded-full blur-3xl group-hover:bg-green-600/20 transition-colors"></div>
@@ -207,27 +227,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
-                        <div className="flex justify-between items-center mb-1">
-                            <div className="p-1.5 bg-green-500/20 rounded-lg">
-                                <FireIcon className="w-5 h-5 text-green-500" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/90 to-transparent z-10">
+                        <div className="flex justify-between items-center mb-2">
+                            <div className="p-2 bg-green-500/20 rounded-lg">
+                                <FireIcon className="w-6 h-6 text-green-500" />
                             </div>
-                            <span className="text-[9px] font-extrabold bg-gray-800 border border-gray-600 text-gray-300 px-2 py-0.5 rounded uppercase tracking-wider">
+                            <span className="text-[10px] font-extrabold bg-gray-800 border border-gray-600 text-gray-300 px-2 py-1 rounded uppercase tracking-wider">
                                 {t.f3Badge}
                             </span>
                         </div>
-                        <h3 className="text-lg font-bold text-white mb-0.5">{t.f3Title}</h3>
-                        <p className="text-[11px] text-gray-400 leading-snug">{t.f3Desc}</p>
+                        <h3 className="text-xl font-bold text-white mb-1">{t.f3Title}</h3>
+                        <p className="text-sm text-gray-400 leading-snug">{t.f3Desc}</p>
                     </div>
                 </div>
             </div>
 
             {/* CORE TOOLS */}
             <div>
-                <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 border-b border-gray-800 pb-1.5">
+                <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-gray-800 pb-2">
                     {t.coreTitle}
                 </h2>
-                <div className="grid md:grid-cols-2 gap-3">
+                <div className="grid md:grid-cols-4 gap-4">
                     <button 
                         onClick={onNewAudit}
                         className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-blue-500 rounded-xl transition-all group text-left"
@@ -237,59 +257,79 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <div>
                             <h4 className="font-bold text-white text-sm">{t.audit}</h4>
-                            <p className="text-[11px] text-gray-400 group-hover:text-gray-300 leading-tight">Find & fix traffic leaks.</p>
+                            <p className="text-[9px] text-gray-400">Fix traffic leaks.</p>
                         </div>
                     </button>
 
                     <button 
-						onClick={() => handleLockedAction(() => setActiveTab('competitor'), 'starter')} 
-						className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-red-500 rounded-xl transition-all group text-left"
-					>
-						<div className="w-10 h-10 bg-red-900/20 rounded-lg flex items-center justify-center text-red-400 group-hover:bg-red-600 group-hover:text-white transition-colors">
-							<ScaleIcon className="w-5 h-5" />
-						</div>
-						<div>
-							<h4 className="font-bold text-white text-sm">{t.spy}</h4>
-							<p className="text-[11px] text-gray-400 group-hover:text-gray-300 leading-tight">Reverse-engineer top sellers.</p>
-						</div>
+                        onClick={onNewDigital}
+                        className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-indigo-500 rounded-xl transition-all group text-left"
+                    >
+                        <div className="w-10 h-10 bg-indigo-900/20 rounded-lg flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <RocketIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white text-sm">{t.digital}</h4>
+                            <p className="text-[9px] text-gray-400">Passive income mastery.</p>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={onNewAmazon}
+                        className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-yellow-500 rounded-xl transition-all group text-left"
+                    >
+                        <div className="w-10 h-10 bg-yellow-900/20 rounded-lg flex items-center justify-center text-yellow-500 group-hover:bg-yellow-600 group-hover:text-white transition-colors">
+                            <BrandIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white text-sm">{t.amazon}</h4>
+                            <p className="text-[9px] text-gray-400">A9 algorithm ready.</p>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={onNewMarket}
+                        className="flex items-center gap-3 p-3 bg-[#161b28] border border-gray-700/50 hover:border-green-500 rounded-xl transition-all group text-left"
+                    >
+                        <div className="w-10 h-10 bg-green-900/20 rounded-lg flex items-center justify-center text-green-400 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                            <GlobeIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white text-sm">Market Scan</h4>
+                            <p className="text-[9px] text-gray-400">Find global blue oceans.</p>
+                        </div>
                     </button>
                 </div>
             </div>
 
             {/* RECENT ACTIVITY */}
-            <div className="pt-2">
-                <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                    <HistoryIcon className="w-3.5 h-3.5" /> {t.history}
+            <div className="pt-4">
+                <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <HistoryIcon className="w-4 h-4" /> {t.history}
                 </h2>
                 
                 {isLoading ? (
-                    <div className="p-4 text-center text-gray-500 animate-pulse text-xs">{t.loading}</div>
+                    <div className="p-8 text-center text-gray-500 animate-pulse">{t.loading}</div>
                 ) : history.length === 0 ? (
-                    <div className="p-6 text-center border-2 border-dashed border-gray-800 rounded-xl text-gray-500 text-xs">
+                    <div className="p-8 text-center border-2 border-dashed border-gray-800 rounded-2xl text-gray-500">
                         No activity yet. Start with the tools above.
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {history.slice(0, 5).map((record) => (
+                    <div className="space-y-3">
+                        {history.map((record) => (
                             <div 
                                 key={record.id}
                                 onClick={() => onLoadReport(record)}
-                                className="group bg-[#161b28] hover:bg-slate-800 border border-slate-800 hover:border-slate-600 rounded-lg p-2.5 flex items-center justify-between cursor-pointer transition-all shadow-sm"
+                                className="group bg-[#161b28] hover:bg-slate-800 border border-slate-800 hover:border-slate-600 rounded-xl p-4 flex items-center justify-between cursor-pointer transition-all shadow-sm"
                             >
-                                <div className="flex items-center gap-3">
-                                    <div className={`
-                                        w-8 h-8 rounded flex items-center justify-center
-                                        ${record.type === 'audit' ? 'bg-blue-500/10 text-blue-400' : 
-                                          record.type === 'trend' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}
-                                    `}>
-                                        {record.type === 'audit' ? <SearchIcon className="w-4 h-4" /> : 
-                                         record.type === 'trend' ? <FireIcon className="w-4 h-4" /> :
-                                         <GeneratorIcon className="w-4 h-4" />}
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gray-900 border border-white/5">
+                                        {getRecordIcon(record.type)}
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-200 text-xs group-hover:text-white leading-tight">{record.title || "Untitled Project"}</h4>
-                                        <div className="text-[9px] text-slate-500 flex items-center gap-1.5 mt-0.5">
-                                            <span className="uppercase tracking-wider">{record.type}</span>
+                                        <h4 className="font-bold text-slate-200 text-sm group-hover:text-white">{record.title || "Untitled Project"}</h4>
+                                        <div className="text-[10px] text-slate-500 flex items-center gap-2">
+                                            <span className="uppercase tracking-wider font-black text-orange-500/80">{record.type}</span>
                                             <span>•</span>
                                             <span>{new Date(record.date).toLocaleDateString()}</span>
                                         </div>
@@ -297,9 +337,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </div>
                                 <button 
                                     onClick={(e) => handleDelete(record.id, e)}
-                                    className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                                    className="p-2 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                                 >
-                                    <TrashIcon className="w-3.5 h-3.5" />
+                                    <TrashIcon className="w-4 h-4" />
                                 </button>
                             </div>
                         ))}
