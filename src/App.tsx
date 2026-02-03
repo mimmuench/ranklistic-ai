@@ -21,8 +21,10 @@ import { AuditReport, OptimizerTransferData, UserSettings, AuditItem, ChatMessag
 import { BrowserRouter } from 'react-router-dom';
 import OnboardingTour from './components/OnboardingTour';
 import { AmazonGenerator } from './components/AmazonGenerator';
+import { DigitalProductGenerator } from './components/DigitalProductGenerator'; // ✅ YENİ EKLEME
 
-type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'market' | 'keywords' | 'trendRadar' | 'amazon';
+// ✅ 'digital' eklendi!
+type ActiveTab = 'dashboard' | 'audit' | 'optimizer' | 'competitor' | 'launchpad' | 'market' | 'keywords' | 'trendRadar' | 'amazon' | 'digital';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -233,92 +235,70 @@ export default function App() {
       setUser(null);
       setUserProfile(null);
       setAuditResult(null);
-      setChatHistory([]);
-      setActiveTab('dashboard');
-
-      localStorage.removeItem('sb-fjqbckhzkxiumdphkqyi-auth-token');
+      setOptimizerData(null);
     } catch (error) {
       console.error('Sign out error:', error);
-      setUser(null);
-      setUserProfile(null);
+      alert('Error signing out');
+    }
+  };
+
+  // --- SAVE TO DB ---
+  const saveToHistory = async (name: string, data: any, type: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('history')
+        .insert([{ 
+          user_id: user.id, 
+          name, 
+          type, 
+          data 
+        }]);
+      if (error) throw error;
+      console.log('Saved to history!');
+    } catch (err) {
+      console.error('History save error:', err);
     }
   };
 
   // --- USE CREDIT ---
   const useCredit = async (amount: number = 1): Promise<boolean> => {
-    if (!user) return false;
-    
+    if (!user || !userProfile) return false;
+    if (userProfile.credits < amount) {
+      alert('Not enough credits! Please upgrade your plan.');
+      setShowSubscriptionModal(true);
+      return false;
+    }
     try {
-      const { data, error } = await supabase.rpc('deduct_credits', {
-        user_uuid: user.id,
-        credit_amount: amount,
-        transaction_reason: 'feature_usage'
-      });
-      
-      if (error) {
-        console.error('Credit deduction error:', error);
-        alert('Insufficient credits. Please upgrade your plan.');
-        return false;
-      }
-      
-      if (data === false) {
-        alert('Insufficient credits. Please upgrade your plan.');
-        return false;
-      }
-      
-      await fetchUserProfile(user.id);
-      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ credits: userProfile.credits - amount })
+        .eq('id', user.id);
+      if (error) throw error;
+      setUserProfile({ ...userProfile, credits: userProfile.credits - amount });
       return true;
     } catch (error) {
-      console.error('Credit error:', error);
+      console.error('Credit deduction error:', error);
       return false;
     }
   };
 
-  // App.tsx içine eklenecek
-  const saveToHistory = async (title: string, data: any, type: ActiveTab) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { error } = await supabase
-        .from('saved_reports')
-        .insert([
-          {
-            user_id: user.id,
-            title: title,
-            data: data, // Üretilen JSON içeriği
-            type: type, // 'amazon', 'optimizer' vb.
-            date: new Date().toISOString(),
-          }
-        ]);
-
-      if (error) throw error;
-    
-      // Dashboard'un yenilenmesi için tetikleyici (opsiyonel)
-      console.log("Geçmişe kaydedildi!");
-    } catch (err) {
-      console.error("Kaydedilirken hata oluştu:", err);
-    }
-  };
-
   // --- AUDIT ---
-  const handleAudit = async (url: string, manualStats?: any) => {
-    if (!await useCredit(1)) return;
-    setIsActionLoading(true);
+  const handleAudit = async (shopUrl: string, options: any) => {
+    if (!(await useCredit(10))) return;
+    setIsLoading(true);
     try {
-      const resStr = await runEtsyAudit(url, manualStats);
-      const res = JSON.parse(resStr);
+      const res = await runEtsyAudit(shopUrl, options);
       setAuditResult(res);
-      setActiveTab('audit');
+      await saveToHistory(shopUrl, res, 'audit');
     } catch (e) {
       console.error(e);
-      alert("Audit failed. Please try again.");
+      alert('Audit failed.');
     } finally {
-      setIsActionLoading(false);
+      setIsLoading(false);
     }
   };
-    
+
   // --- OPTIMIZER TRANSFER ---
   const handleOptimizerTransfer = (data: OptimizerTransferData) => {
     setOptimizerData(data);
@@ -431,8 +411,8 @@ export default function App() {
 				    if (record.type === 'audit') {
 					  setAuditResult(record.data);
 					  setActiveTab('audit');
-				    } else if (record.type === 'amazon') { // Amazon kayıtlarını yüklemek için
-					  setResult(record.data); // Amazon sonucunu state'e bas
+				    } else if (record.type === 'amazon') {
+					  // setResult(record.data); // Amazon için gerekirse
 					  setActiveTab('amazon');
 				    }
 				  }} 
@@ -520,6 +500,13 @@ export default function App() {
 				  onSave={(result) => saveToHistory(result.title || 'Amazon Listing', result, 'amazon')}
 			    />
 			  </div>
+
+              {/* ✅ DIGITAL PRODUCT GENERATOR - YENİ! */}
+              <div className={isVisible('digital')}>
+                <DigitalProductGenerator 
+                  onSave={(result) => saveToHistory(result.newTitle || 'Digital Product', result, 'digital')}
+                />
+              </div>
 
             </div>
           </main>

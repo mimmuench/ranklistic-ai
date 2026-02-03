@@ -1,30 +1,9 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { AuditItem, ChatMessage, CompetitorAnalysisResult, MarketAnalysisResult, ListingOptimizerResult } from '../types';
+import { validateEtsyListing, quickQualityCheck } from '../services/validator';
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
-
-// ✅ Helper fonksiyon en üstte
-const validateQuality = (result: ListingOptimizerResult): string[] => {
-    const errors: string[] = [];
-    const titleWords = result.newTitle.toLowerCase().split(/\s+/);
-    const uniqueWords = new Set(titleWords.filter(w => w.length > 3));
-    if (titleWords.length !== uniqueWords.size + titleWords.filter(w => w.length <= 3).length) {
-        errors.push("❌ Title contains repeated words");
-    }
-    const bannedPhrases = ["stunning", "elevate", "perfect for any", "exquisite", "must-have", "game-changer", "unleash", "meticulously"];
-    const descLower = result.newDescription.toLowerCase();
-    bannedPhrases.forEach(phrase => {
-        if (descLower.includes(phrase)) {
-            errors.push(`❌ Description contains banned AI jargon: "${phrase}"`);
-        }
-    });
-    const longTailCount = result.hashtags.filter(tag => tag.split(' ').length >= 2).length;
-    if (longTailCount < 7) {
-        errors.push(`⚠️ Only ${longTailCount}/13 tags are long-tail (need 7+)`);
-    }
-    return errors;
-};
 
 export const cleanJsonString = (str: string): string => {
     if (!str) return "{}";
@@ -179,165 +158,248 @@ export const generateListingContent = async (
         if (imageBase64) {
             parts.push({ inlineData: { mimeType: 'image/jpeg', data: imageBase64 } });
         }
-        
-        const prompt = `
-**ROLE:** You are a TOP 1% Etsy seller who writes listings that convert at 8%+ (industry avg is 1-2%). Your secret? You write like a human, not a robot.
+                
+		const prompt = `
+**CRITICAL MISSION:** You MUST fill out the provided template EXACTLY as structured. Do NOT create a freeform description.
 
 ---
 
-## 🚫 CRITICAL: INSTANT DISQUALIFICATION PHRASES
+## 🚫 ZERO TOLERANCE - INSTANT REJECTION PHRASES
 
-If you use ANY of these phrases, this listing FAILS:
-- "Stunning" / "Elevate" / "Elevate your space"
-- "Perfect for any" / "Exquisite" / "Must-have"
-- "Game-changer" / "Unleash" / "Realm" / "Dive into"
-- "Meticulously crafted" / "Breathtaking" / "Timeless elegance"
-- "Crafted with care" / "One-of-a-kind" (unless literally handmade single item)
-
-**PENALTY:** If I detect these, you will be asked to regenerate. Don't waste tokens.
-
----
-
-## ✅ TITLE FORMULA (140 CHARS MAX - ETSY'S HARD LIMIT)
-
-**Structure:** [Unique Hook] + [Primary Keyword] + [Material] + [Style] + [Gift/Use Case]
-
-**CRITICAL RULES:**
-1. **NO REPEATED WORDS** (except "and", "with", "for")
-2. **Front-load uniqueness** (first 40 chars = most searchable term)
-3. **Natural flow** (use commas, not dashes)
-4. **Character count:** 100-140 chars
-
-**Examples:**
-
-❌ BAD: "Metal Wall Art Decor, Steel Wall Hanging, Modern Home Decor"
-✅ GOOD: "Saguaro Sunset Desert Landscape, Laser-Cut Steel Mountain Silhouette, Southwest Boho Wall Sculpture"
-
-❌ BAD: "Funny Cat Shirt, Cute Kitten Tee, Animal Lover Gift"
-✅ GOOD: "Existential Crisis Cat Illustration Tee, Hand-Drawn Philosophical Feline Graphic, Introvert Humor Shirt"
+Using ANY of these = AUTOMATIC FAILURE:
+- "Stunning" / "Elevate" / "Perfect for any" / "Exquisite" / "Must-have"
+- "Picture this" / "Imagine this" / "It's not just" / "Transform your"
+- "Captivating" / "Mesmerizing" / "Breathtaking" / "Pure joy"
+- "Game-changer" / "Unleash" / "Realm" / "Journey" / "Masterpiece"
+- "Adds a touch of" / "Touch of elegance" / "Fresh [X], crisp [Y]"
+- Template placeholders: "[Insert", "{{", "___"
 
 ---
 
-## 📝 DESCRIPTION RULES (500-800 CHARS)
+## 📋 YOUR TEMPLATE TO FILL (MANDATORY STRUCTURE)
 
-**Tone:** Conversational, like you're explaining to a friend. ${tone === 'professional' ? 'Keep it crisp and factual.' : tone === 'friendly' ? 'Warm but not gushy.' : 'Casual, almost like a text message.'}
-
-**Structure:**
-1. **Hook (1 sentence):** Paint a visual or emotional scene
-2. **What it is (2-3 sentences):** Describe design, materials, craftsmanship
-3. **Why it matters (2 sentences):** Benefit to customer (NOT "elevates your space")
-4. **Specs (1-2 sentences):** Sizes, colors, shipping, care
-
-**FORBIDDEN:**
-- Emoji overload (max 3 per section)
-- Lists with bullets (write in prose)
-- Template placeholders like "[Insert X]"
-- Generic statements like "high-quality craftsmanship"
-
-**REQUIRED MENTIONS (if applicable):**
-- Actual material thickness (e.g., "1.5mm steel")
-- Finish type (e.g., "matte black powder coat")
-- Specific dimensions (e.g., "18x24 inches")
-- ${personalization ? 'Personalization options (HOW to request it)' : ''}
+${template}
 
 ---
 
-## 🏷️ 13 TAGS (ETSY SEO 2026 RULES)
+## ✅ FILLING INSTRUCTIONS - FOLLOW EXACTLY
+
+### 1. TITLE (newTitle field)
+**Structure:** [Specific Design Detail] + [Material/Process] + [Product Type] + [Style] + [Use Case]
+**Rules:**
+- 100-140 chars
+- NO repeated words (except: and, with, for, &)
+- Front-load specificity (first 40 chars = unique descriptor)
+- NO generic words: "Beautiful", "Amazing", "Perfect", "Unique"
+
+**Example for skiing metal art:**
+❌ BAD: "Powder Day Shredder, Laser-Cut Steel Skiing Art, Mountain Home Decor"
+✅ GOOD: "Downhill Skier Mid-Turn Silhouette, Laser-Cut Steel Alpine Wall Sculpture, Ski Lodge Mountain Sports Decor"
+
+---
+
+### 2. DESCRIPTION (newDescription field)
+
+**CRITICAL:** Fill EACH section of the template. Do NOT write freeform text.
+
+#### 🌟 Overview Section:
+- **Opening Hook:** 1 sentence, factual scene-setting (NO "Picture this", NO "Imagine")
+  - ✅ Example: "This skier silhouette captures the moment of a downhill carve against a mountain backdrop."
+  - ❌ Example: "Picture this: fresh powder, crisp air, pure joy on the slopes."
+
+- **Visual Description:** 1-2 sentences describing ACTUAL design elements
+  - ✅ Example: "The figure leans into the turn with ski poles extended, surrounded by geometric mountain peaks."
+  - ❌ Example: "A stunning visual that brings elegance to any space."
+
+#### 💫 Why you'll love this [Product Name/Type]:
+Use bullet format EXACTLY as template shows:
+- **[Benefit 1 Name]** – [Specific explanation, 1 sentence, NO AI jargon]
+- **[Benefit 2 Name]** – [Specific explanation]
+- **Premium Craftsmanship** – "Cut from {material thickness} {material type} using precision laser cutting."
+- **Durable Finish** – "{Coating type} finish resists {specific properties like moisture/UV/scratches}."
+- **3D Shadow Effect** – [IF APPLICABLE: "Mounted on {spacer detail} creating {depth measurement} shadow."]
+
+**Example:**
+* **Unique Alpine Design** – Captures the technical form of a downhill turn rather than generic mountain scenery.
+* **Versatile Placement** – Works in ski lodges, mountain cabins, or covered outdoor areas where moisture resistance matters.
+* **Premium Craftsmanship** – Cut from 1.5mm cold-rolled steel using precision laser cutting.
+* **Durable Finish** – Powder coat finish resists moisture, UV exposure, and temperature fluctuations.
+
+#### 🎁 Perfect gift for:
+List 3 specific audiences/occasions:
+* [Specific person type - be precise]
+* [Specific occasion - be clear]
+* [Specific style match - be accurate]
+
+**Example:**
+* Skiers and snowboarders who want their passion reflected in home decor
+* Housewarming gifts for mountain homeowners or ski resort property
+* Modern rustic interiors mixing industrial materials with alpine aesthetics
+
+#### 📏 Available sizes:
+**IF USER PROVIDED SIZES:** List them exactly as given
+**IF NO SIZES PROVIDED:** Use realistic defaults:
+- Small: 12"×16" / 30×40cm
+- Medium: 18"×24" / 45×60cm
+- Large: 24"×32" / 60×80cm
+(Custom sizes available upon request)
+
+#### 🎨 Color options:
+List colors based on ${material} input:
+- If "steel" or "metal": Matte black, white, gold, silver, bronze
+- If "wood": Natural oak, walnut, cherry, ebony, whitewashed
+- If user specified colors: Use those
+
+#### 🛠️ Material & craftsmanship:
+Be SPECIFIC with technical details:
+- Material: {material type} - {thickness}mm
+- Process: {cutting method} (laser-cut, CNC-milled, hand-welded)
+- Finish: {coating type} ({specific properties})
+- Weight: {approximate weight if metal}
+- Mounting: {mounting method - keyhole brackets, spacers, etc.}
+
+**Example:**
+- Material: Cold-rolled steel - 1.5mm thickness
+- Process: Precision laser-cut with smooth, deburred edges
+- Finish: Electrostatic powder coating (moisture and UV resistant)
+- Weight: Approximately 2.8 lbs for 18×24" size
+- Mounting: Pre-drilled holes with included mounting hardware
+
+#### 📦 Shipping & guarantee:
+KEEP EXACTLY AS TEMPLATE (already perfect):
+* FREE SHIPPING ON ALL ORDERS!
+* Worldwide shipping with secure, protective packaging
+* Fast delivery: 3–5 business days to North America & Europe
+* 100% satisfaction guarantee — full refund or replacement if damaged
+
+#### 🏁 Final touch:
+Write 1 sentence that summarizes the piece WITHOUT AI jargon
+- ✅ Example: "A technical celebration of alpine sports for those who live the mountain lifestyle."
+- ❌ Example: "This masterpiece will elevate your space and bring timeless elegance to your home."
+
+Then add: "Looking for a custom size or color? Feel free to contact us — we're happy to help."
+
+---
+
+## 🏷️ 13 TAGS (hashtags field)
 
 **Breakdown:**
-- 7-9 **long-tail** (2-3 words): "vintage boho wall art", "minimalist steel sculpture"
-- 3-4 **high-volume** (1 word): "wallart", "homedecor", "metalart"
-- 1-2 **ultra-niche** (4+ words): "mid century modern abstract geometric"
+- 7-9 long-tail (2-3 words): "alpine sports decor", "ski lodge wall art", "laser cut metal"
+- 3-4 high-volume (1-2 words): "wall art", "metal decor", "skiing gift"
+- 1-2 ultra-niche (4+ words): "downhill skier silhouette art"
 
-**CRITICAL:**
+**Rules:**
+- NO # symbol
 - NO duplicates
-- NO hashtag symbol (#)
-- Tags must match actual product (don't tag "vintage" if it's modern)
-- Use all 13 slots (Etsy penalizes empty slots)
+- Match ACTUAL product (don't tag "vintage" if it's modern)
+- Include: material, style, use case, audience
+
+**Example for skiing art:**
+[
+  "ski wall art",
+  "alpine sports decor",
+  "metal ski sculpture",
+  "mountain home art",
+  "skiing gift",
+  "laser cut metal",
+  "ski lodge decor",
+  "winter sports wall art",
+  "downhill skier art",
+  "metal wall hanging",
+  "skier silhouette",
+  "mountain cabin decor",
+  "outdoor enthusiast gift"
+]
 
 ---
 
-## 📱 SOCIAL MEDIA CONTENT (CRITICAL - DON'T HALF-ASS THIS!)
+## 📱 SOCIAL MEDIA (socialMedia field)
 
-### **PINTEREST (HIGH PRIORITY - 40% of Etsy traffic!)**
+### Pinterest:
+**pinterestTitle (60-100 chars):**
+"{Main Design Detail} - {Material} {Product Type} for {Target Space}"
+Example: "Downhill Skier Silhouette - Steel Wall Art for Ski Lodges & Mountain Homes"
 
-**Pin Title (60-100 chars):**
-- Front-load main keyword
-- Include benefit or emotion
-- Example: "Desert Sunset Metal Art - Rustic Southwest Wall Decor for Boho Homes"
+**pinterestDescription (200-400 chars):**
+Paragraph 1: What it is + key benefit (2 sentences, factual)
+Paragraph 2: Where it fits (2 sentences, specific rooms/styles)
+Paragraph 3: CTA (1 sentence, direct)
 
-**Pin Description (100-500 chars):**
-- **Paragraph 1 (2 sentences):** What it is + why someone would love it
-- **Paragraph 2 (2 sentences):** Where it fits (room types, decor styles)
-- **Paragraph 3 (1 sentence):** Call to action ("Shop now for free shipping!")
-- **NO AI jargon** - Write like you're texting a friend about a cool find
-- Include 2-3 relevant keywords naturally
+Example:
+"This laser-cut steel skier captures a downhill turn with technical precision. The powder-coated finish resists moisture for use in bathrooms or covered patios.
 
-**Alt Text (125 chars max):**
-- Describe the image for visually impaired users
-- Example: "Black metal wall art depicting a desert landscape with saguaro cactus and mountains at sunset"
+Fits modern rustic, industrial, or alpine-themed interiors. Pairs with natural wood furniture and stone accents.
 
-**Hashtags (8-12 tags):**
-- Mix popular (#homedecor) and niche (#southwestwallart)
-- Format: #space #separated #notCommas
+Available in five finishes with free shipping on all orders."
 
----
+**pinterestAltText (max 125 chars):**
+Describe image for accessibility
+Example: "Black metal wall art showing skier in downhill turn position with mountain peaks in background"
 
-### **INSTAGRAM**
+**pinterestHashtags (8-12 tags, space-separated):**
+#skidecor #metalwallart #alpinehome #mountaincabin #skiinggift #lasercutart #lodgedecor #winterdecor
 
-**Caption (150-300 chars):**
-- **Line 1:** Hook (question, bold statement, or relatable scenario)
-- **Line 2-3:** Quick product description (conversational tone)
-- **Line 4:** Soft CTA ("Link in bio" or "DM to order")
-- **NO emoji spam** (max 5 total)
-- **NO AI fluff** - Sound like a real person
+### Instagram:
+**instagramCaption (150-300 chars, 4 lines):**
 
-**Hashtags (25-30 tags):**
-- **Format:** All on separate lines after caption, starting with "." to hide them
-- **Mix:**
-  - 5 high-volume (1M+ posts): #homedecor #wallart #interiordesign
-  - 15 medium (100k-500k): #bohostyle #modernfarmhouse #metalart
-  - 10 niche (<50k): #desertdecor #lasercut art #southwestvibes
+Line 1 (Hook): Question or statement, NO AI clichés
+Example: "Ever wonder what makes metal art better than canvas for mountain homes?"
 
----
+Lines 2-3 (Description): Product facts, conversational
+Example: "This skier silhouette is laser-cut from 1.5mm steel with powder coating. Resists moisture and temperature swings that destroy prints."
 
-## 📤 JSON OUTPUT FORMAT
+Line 4 (CTA): Soft, informative
+Example: "Link in bio - free shipping, 5 finishes available."
 
-{
-  "newTitle": "string (100-140 chars)",
-  "newDescription": "string (500-800 chars, NO emojis in main body)",
-  "hashtags": ["tag1", "tag2", ... 13 total],
-  "socialMedia": {
-    "pinterestTitle": "string (60-100 chars)",
-    "pinterestDescription": "string (200-400 chars, 3 paragraphs)",
-    "pinterestAltText": "string (125 chars max)",
-    "pinterestHashtags": "#tag1 #tag2 #tag3 #tag4 #tag5 #tag6 #tag7 #tag8",
-    "instagramCaption": "string (150-300 chars, 4 lines, natural tone)",
-    "instagramHashtags": "#tag1 #tag2 #tag3 ... (25-30 tags, line-separated)"
-  }
-}
+**instagramHashtags (25-30 tags, each on new line after "..."):**
+Mix:
+- 5 high-volume: #homedecor #wallart #interiordesign #metalart #skiing
+- 15 medium: #skiinggift #mountainhome #alpinedecor #lasercutart #steelart #lodgedecor
+- 10 niche: #skierdecor #downh illskier #alpinesports #mountaincabinart #winterhome
 
 ---
 
-## 🎯 YOUR MISSION
+## 🎯 YOUR INPUTS
 
-Using these inputs:
 - **Current Title:** ${title}
 - **Current Description:** ${description}
 - **Niche:** ${niche}
 - **Material:** ${material}
 - **Tone:** ${tone}
-- **Personalization:** ${personalization ? 'Yes' : 'No'}
+- **Personalization:** ${personalization ? 'YES - Explain HOW to request it in description' : 'NO'}
+- **Shop Context:** ${shopContext}
 
-Generate a FLAWLESS Etsy listing that:
-1. Passes ALL validation rules
-2. Sounds 100% human (no AI jargon)
-3. Ranks on Page 1 for long-tail searches
-4. Converts browsers into buyers
+---
 
-**NOW GENERATE THE JSON. NO PREAMBLE. JUST JSON.**
-        `;
+## 📤 JSON OUTPUT (STRICT FORMAT)
 
+{
+  "newTitle": "string (100-140 chars, follows title formula)",
+  "newDescription": "string (EXACTLY matching template structure with all sections filled)",
+  "hashtags": ["tag1", "tag2", ... exactly 13 tags, no # symbols],
+  "socialMedia": {
+    "pinterestTitle": "string (60-100 chars)",
+    "pinterestDescription": "string (200-400 chars, 3 paragraphs)",
+    "pinterestAltText": "string (max 125 chars)",
+    "pinterestHashtags": "#tag1 #tag2 #tag3 ... (8-12 tags)",
+    "instagramCaption": "string (150-300 chars, 4 lines)",
+    "instagramHashtags": "#tag1\\n#tag2\\n#tag3\\n... (25-30 tags)"
+  }
+}
+
+---
+
+## ⚠️ FINAL CHECKLIST BEFORE SUBMITTING
+
+- [ ] newDescription follows EXACT template structure (all emoji headers present)
+- [ ] NO banned AI phrases used anywhere
+- [ ] Title has NO repeated words
+- [ ] All technical specs filled with real numbers (not "[Insert]" placeholders)
+- [ ] 13 tags provided with no duplicates
+- [ ] Social media content is factual, not flowery
+
+**NOW GENERATE THE JSON. NO PREAMBLE. JUST THE JSON OBJECT.**
+`;
         parts.push({ text: prompt });
 
         try {
@@ -353,29 +415,42 @@ Generate a FLAWLESS Etsy listing that:
             });
 
             const jsonText = cleanJsonString(response.text || "{}");
-            const parsed = JSON.parse(jsonText);
+			const parsed = JSON.parse(jsonText);
 
-            // 🔒 SERT VALIDASYON (Array döndüren sistemine tam uyum)
-            const errors = validateQuality(parsed); 
-            
-            // Yasaklı kelime filtresini buraya da mühürlüyoruz (Imagine vb.)
-            const forbiddenWords = ["imagine", "stunning", "elevate", "perfect for", "must-have"];
-            const descLower = (parsed.newDescription || "").toLowerCase();
-            forbiddenWords.forEach(word => {
-                if (descLower.includes(word)) errors.push(`Kritik Hata: Yasaklı kelime kullanıldı (${word})`);
-            });
+			// ✅ YENİ VALIDATION SİSTEMİ
+			console.log(`📋 Validating attempt ${attempt}/${maxRetries}...`);
 
-            const score = 100 - (errors.length * 15); // Her hata için 15 puan kır
-            
-            console.log(`📊 Validation Score: ${score}/100`);
-            
-            if (score >= 80 || attempt === maxRetries) {
-                console.log(`✅ Listing APPROVED (Score: ${score})`);
-                return jsonText;
-            } else {
-                console.warn(`⚠️ Reddedildi! Skor düşük (${score}). Tekrar deneniyor...`);
-                if (attempt < maxRetries) continue;
-            }
+			// Quick check
+			const quickCheck = quickQualityCheck(parsed.newDescription || "");
+			if (!quickCheck.passed) {
+				console.error("❌ Quick validation failed:", quickCheck.issues);
+				if (attempt < maxRetries) {
+					console.log("🔄 Retrying...");
+					continue;
+				}
+			}
+
+			// Full validation
+			const validationResult = validateEtsyListing(parsed);
+			console.log(`📊 Validation Score: ${validationResult.score}/100`);
+
+			if (validationResult.errors.length > 0) {
+				console.error("Errors:", validationResult.errors);
+			}
+
+			// Karar
+			if (validationResult.isValid && validationResult.score >= 85) {
+				console.log(`✅ Listing APPROVED (Score: ${validationResult.score})`);
+				return jsonText;
+			} 
+			else if (attempt === maxRetries) {
+				console.warn(`⚠️ Max retries reached (Score: ${validationResult.score})`);
+				return jsonText;
+			} 
+			else {
+				console.warn(`⚠️ Retrying... (Score: ${validationResult.score})`);
+				continue;
+			}
 
         } catch (error: any) {
             console.error(`❌ Attempt ${attempt} failed:`, error);
@@ -386,7 +461,8 @@ Generate a FLAWLESS Etsy listing that:
     } // <-- for döngüsü kapanışı
 
     throw new Error("Unexpected error in generateListingContent");
-}; // <-- ANA FONKSİYON BURADA BİTİYOR
+};
+
 export const getOptimizerChatResponse = async (
     contextData: { title: string, description: string, template: string },
     currentResult: ListingOptimizerResult,

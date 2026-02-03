@@ -1,7 +1,50 @@
-import { GoogleGenAI } from "@google/genai";
-import { validateDigitalListing, validateEtsyListing } from './validator';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
+// 🔧 MOCK VALIDATOR (eğer validator.ts yoksa)
+// Eğer validator.ts dosyan varsa, bu kısmı sil ve gerçek validator'ı import et
+const validateDigitalListing = (data: any) => {
+  const errors = [];
+  let score = 100;
+
+  if (!data.newTitle?.includes('Digital Download') && !data.newTitle?.includes('Printable')) {
+    errors.push('Title must include "Digital Download" or "Printable"');
+    score -= 20;
+  }
+  if (data.newTitle?.length > 140) {
+    errors.push('Title exceeds 140 characters');
+    score -= 10;
+  }
+  if (data.hashtags?.length !== 13) {
+    errors.push(`Expected 13 tags, got ${data.hashtags?.length || 0}`);
+    score -= 10;
+  }
+  if (!data.hashtags?.includes('digital download')) {
+    errors.push('Tags must include "digital download"');
+    score -= 15;
+  }
+
+  return { score: Math.max(0, score), errors };
+};
+
+const validateEtsyListing = (data: any) => {
+  const errors = [];
+  let score = 100;
+
+  if (!data.newDescription || data.newDescription.length < 200) {
+    errors.push('Description too short (min 200 chars)');
+    score -= 20;
+  }
+
+  return { score: Math.max(0, score), errors };
+};
+
+// ✅ API Key kontrolü
+const apiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+if (!apiKey) {
+  console.error('❌ VITE_GOOGLE_API_KEY is not set!');
+}
+
+const ai = new GoogleGenerativeAI(apiKey || 'dummy-key');
 
 const cleanJsonString = (str: string): string => {
     if (!str) return "{}";
@@ -58,6 +101,11 @@ export const generateDigitalProductListing = async (
     maxRetries: number = 2
 ): Promise<string> => {
     
+    // API Key kontrolü
+    if (!apiKey) {
+        throw new Error('Google API Key is not configured. Please set VITE_GOOGLE_API_KEY in your .env file');
+    }
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         console.log(`🔄 Digital Product Listing - Attempt ${attempt}/${maxRetries}`);
         
@@ -67,193 +115,185 @@ export const generateDigitalProductListing = async (
         }
         
         const prompt = `
-**ROLE:** You are an Etsy digital product expert who specializes in high-converting instant download listings.
+**ROLE:** You are a technical Etsy digital product expert. You analyze uploaded artwork/images and generate professional listings for SVG/CNC/Laser cutting files.
+
+**TASK:** Analyze the uploaded image and create a listing following this EXACT template structure.
 
 **PRODUCT TYPE:** ${productType}
-**NICHE:** ${niche}
-**TONE:** ${tone}
+**USER INPUT TITLE:** ${title}
+**USER INPUT DESCRIPTION:** ${description}
 
 ---
 
-## 🚫 BANNED AI PHRASES (INSTANT FAIL)
+## 📋 EXACT TEMPLATE TO FOLLOW:
+
+**TITLE FORMAT (140 chars):**
+[Subject] Silhouette SVG [Action/Style] Cut File [Category] [Application] Vector for Cricut Silhouette Glowforge CNC Laser Cuttora
+
+**EXAMPLE TITLES:**
+- Alpine Skier Silhouette SVG Skiing Cut File Sports Winter Decal Vector for Cricut Silhouette Glowforge CNC Laser Cuttora
+- Mountain Biker SVG Adventure Cut File Cycling Sports Vector for Cricut Silhouette Glowforge CNC Laser Cuttora
+- Yoga Pose Silhouette SVG Meditation Cut File Wellness Fitness Vector for Cricut Silhouette Glowforge CNC Laser Cuttora
+
+**DESCRIPTION STRUCTURE (EXACT FORMAT):**
+
+🎯 QUICK OVERVIEW:
+[2-3 sentences describing the design from the image - what it shows, style, technical quality]
+Example: "High-precision digital silhouette of an alpine skier in a professional aerodynamic racing tuck. This Cuttora design is engineered specifically for clean cutting, engraving, and scaling without loss of detail."
+
+🛠️ COMPATIBILITY & USAGE:
+Fully compatible with Cricut Design Space, Silhouette Studio, Glowforge, CNC Plasma, and other laser cutters. Our files feature clean, smooth paths tested for technical precision to ensure minimal node count and efficient cutting times.
+
+📦 WHAT YOU RECEIVE:
+You will receive a ZIP archive containing the following formats:
+• SVG: Professional-grade vector for scaling and cutting.
+• PNG: High-resolution (300 DPI) with a transparent background.
+• EPS: Master vector file for advanced editing software.
+• DXF: Technical format for AutoCAD and basic CNC software.
+• PDF: Versatile format for printing and vector viewing.
+Note: This is a single-path design optimized for easy weeding and material efficiency.
+
+📜 COMMERCIAL LICENSE:
+Personal use and Small Business commercial use (up to 500 physical items) are included with your purchase. You may create shirts, decals, signs, and laser-engraved items. NO digital resale, redistribution, or sharing of these files is permitted.
+
+📥 INSTANT DOWNLOAD:
+This is a digital-only product. No physical item will be shipped. Once payment is confirmed, your files will be available immediately through your Etsy account under 'Purchases and Reviews' or via your registered email.
+
+⚠️ IMPORTANT NOTES:
+Due to the nature of digital downloads, all sales are final. No refunds, exchanges, or cancellations will be issued. Please ensure your software is compatible with the listed formats before purchasing.
+
+---
+
+## 🎯 YOUR TASK:
+
+1. **ANALYZE THE IMAGE** (if provided) and identify:
+   - Main subject (person, animal, object, shape)
+   - Action/pose/style
+   - Category (sports, nature, abstract, etc.)
+   - Technical qualities
+
+2. **CREATE TITLE** following the exact format above
+
+3. **CREATE DESCRIPTION** following the EXACT emoji structure:
+   - 🎯 QUICK OVERVIEW: [Describe what's in the image]
+   - 🛠️ COMPATIBILITY & USAGE: [Use exact template text]
+   - 📦 WHAT YOU RECEIVE: [Use exact template text]
+   - 📜 COMMERCIAL LICENSE: [Use exact template text]
+   - 📥 INSTANT DOWNLOAD: [Use exact template text]
+   - ⚠️ IMPORTANT NOTES: [Use exact template text]
+
+4. **CRITICAL RULES:**
+   - MUST use emojis (🎯 🛠️ 📦 📜 📥 ⚠️)
+   - MUST follow exact section structure
+   - ONLY customize the "QUICK OVERVIEW" section based on image
+   - ALL other sections stay exactly as template
+   - Title MUST end with "Cuttora"
+   - Title MUST include: Cricut Silhouette Glowforge CNC Laser
+
+---
+
+## 🚫 BANNED PHRASES:
 
 - "Stunning" / "Elevate" / "Perfect for any"
 - "Must-have" / "Game-changer" / "Unique"
-- "One-of-a-kind" / "Exquisite" / "Meticulously"
+- "Exquisite" / "Meticulously crafted"
 
 ---
 
-## ✅ DIGITAL PRODUCT TITLE RULES (140 CHARS MAX)
-
-**Formula:**
-[Product Type] + [Style/Theme] + [Use Case] + [File Format] + "Digital Download" or "Printable"
-
-**Examples:**
-
-For Printable Art:
-"Boho Desert Landscape Print, Southwestern Wall Art Poster, Instant Download, Minimalist Terracotta Decor, Printable JPG"
-
-For Planner:
-"2026 Monthly Budget Planner PDF, Digital Finance Tracker, Printable A4/Letter, Debt Payoff Spreadsheet, Instant Download"
-
-For SVG/Clipart:
-"Hand-Drawn Floral Clipart Bundle SVG, 50 Botanical Line Art Graphics, Commercial Use, Cricut Design Files"
-
-**CRITICAL RULES:**
-- MUST include "Digital Download" OR "Printable" OR "Instant Download"
-- MUST mention file format (PDF, JPG, PNG, SVG, etc.)
-- Front-load unique descriptor
-- NO repeated words
-
----
-
-## 📝 DESCRIPTION STRUCTURE (600-1000 CHARS)
-
-**Paragraph 1: What They Get (2-3 sentences)**
-Example: "This printable wall art features a serene desert landscape with muted terracotta tones. Perfect for creating a calming boho vibe in your living room, bedroom, or office. Download instantly and print at home or through a professional printer."
-
-**Paragraph 2: File Details (3-4 sentences)**
-- List EXACT file formats included (e.g., "1 JPG file (300 DPI), 1 PDF file (8x10 inches)")
-- Mention size/dimensions
-- Specify if resizable
-- Example: "You'll receive 1 high-resolution JPG (300 DPI) sized at 8x10 inches and 1 PDF ready for printing. Files are optimized for quality printing up to 16x20 inches. Compatible with any printer."
-
-**Paragraph 3: How It Works (2 sentences)**
-Example: "After purchase, download the files immediately from Etsy's 'Purchases' page. No physical product will be shipped—this is a digital item only."
-
-**Paragraph 4: Usage Rights (2 sentences)**
-${productType === 'clipart' || productType === 'svg-files' || productType === 'fonts' 
-    ? 'Example: "Personal AND small commercial use allowed (up to 100 physical items or 50 digital products). You may NOT resell or redistribute the files themselves."'
-    : 'Example: "For personal use only. You may print unlimited copies for your own home or as gifts, but not for resale."'
-}
-
-**Paragraph 5: Technical Notes (1-2 sentences)**
-Example: "Colors may vary slightly depending on your screen and printer. For best results, use high-quality cardstock or photo paper."
-
-**Paragraph 6: CTA (1 sentence)**
-Example: "Download now and transform your space instantly!"
-
----
-
-## 🏷️ 13 TAGS (DIGITAL PRODUCT SPECIFIC)
+## 🏷️ 13 TAGS (SVG/CNC SPECIFIC):
 
 **MUST INCLUDE:**
-- "digital download" (ALWAYS)
-- "printable" or "instant download"
-- File type tag (e.g., "svg file", "pdf planner")
+- "svg cut file" or "svg file"
+- "cricut" or "silhouette"
+- "laser cut" or "cnc"
+- Subject-related tags
 
-**Breakdown:**
-- 5-7 long-tail (e.g., "boho desert wall art printable")
-- 3-4 high-volume (e.g., "wall art", "printable art")
-- 2-3 niche/specific (e.g., "terracotta poster print")
+**EXAMPLE TAG SET for Skier:**
+["svg cut file", "skiing svg", "alpine skier", "winter sports svg", "cricut design", "silhouette file", "glowforge svg", "laser cut file", "cnc plasma", "sports decal", "skier silhouette", "cuttora design", "vector cut file"]
 
-**Example Tags for Printable Art:**
-["digital download", "printable wall art", "boho desert print", "instant download art", "terracotta poster", "southwestern decor", "minimalist landscape", "neutral wall art", "modern printable", "home decor print", "8x10 wall art", "downloadable art", "printable poster"]
+**Generate 13 tags based on the image content following this pattern.**
 
 ---
 
-## 📱 SOCIAL MEDIA (CRITICAL FOR DIGITAL PRODUCTS!)
+## 📱 SOCIAL MEDIA:
 
-### **PINTEREST** (MAJOR TRAFFIC SOURCE - 60%+ for digital products!)
+### PINTEREST:
+**Title:** [Subject] SVG Cut File - Instant Download for Cricut & Laser
+**Description:** Professional [subject] silhouette SVG perfect for Cricut, Silhouette, Glowforge, and CNC machines. Includes SVG, PNG, EPS, DXF, PDF formats. Commercial use included!
+**Hashtags:** #svgfile #cricutdesign #silhouettecameo #lasercut #cncfile #vectorfile #digitaldownload #etsysvg #cutfile #glowforge
 
-**Pin Title (60-100 chars):**
-Must include "Printable" or "Digital Download" + benefit
-Example: "Boho Desert Printable Wall Art - Instant Download Terracotta Poster"
-
-**Pin Description (250-400 chars):**
-3 paragraphs:
-1. What it is + why someone needs it
-2. How to use it (print at home, Staples, FedEx, etc.)
-3. CTA ("Get instant access!" or "Download now for your next project!")
-
-Example:
-"Transform your space with this printable desert landscape art. The muted terracotta tones bring a calming, boho vibe to any room.
-
-Simply download the high-res file and print at home, Staples, or your local print shop. Available in 8x10 with scalability up to 16x20.
-
-Perfect for renters who can't paint walls or anyone wanting affordable art rotation. Download instantly and print as many times as you want!"
-
-**Alt Text (125 chars):**
-Describe for accessibility.
-Example: "Printable desert landscape art print with terracotta and beige tones in minimalist boho style"
-
-**Hashtags (10-15):**
-Example: "#printableart #digitaldownload #etsyprintable #bohodecor #desertprint #wallartprintable #instantdownload #affordableart #homedecorideas #printablewalldecor"
+### INSTAGRAM:
+**Caption:** New [subject] SVG available! 🎨 Perfect for your Cricut, Silhouette, or laser cutter. Link in bio! ⬆️
+**Hashtags:** #svgfiles #cricutmade #silhouettecameo #lasercut #cnc #vectorart #etsyshop #digitaldownload #svgcutfile #crafting #diy #smallbusiness
 
 ---
 
-### **INSTAGRAM**
-
-**Caption (200-300 chars):**
-Hook + product description + CTA
-
-Example:
-"Why pay $50+ for framed art when you can download this for $5 and print unlimited copies? 🌵
-
-This desert landscape printable is perfect for boho, minimalist, or southwestern vibes. Instant download, print at home or Staples.
-
-Link in bio to grab yours! 💻✨"
-
-**Hashtags (25-30):**
-Mix high-volume, medium, and ultra-niche
-Example:
-"#printableart #digitaldownload #etsyfinds #wallartdecor #bohohomedecor #desertvibes #affordableart #printables #instantdownload #homedecorinspo #minimalistart #terracottadecor #southwesternstyle #printablewalldecor #digitalart #homedecorating #bohostyle #neutraldecor #walldecor #printathome #budgetdecor #diydecor #interiordesign #modernhome #cozyhome #printableposters #etsyshop #smallbusiness #supportsmall #shopsmall"
-
----
-
-## 📤 JSON OUTPUT
+## 📤 JSON OUTPUT FORMAT:
 
 {
-  "newTitle": "string (100-140 chars, MUST include 'Digital Download' or 'Printable')",
-  "newDescription": "string (600-1000 chars, 6 paragraphs)",
-  "hashtags": ["tag1", "tag2", ... 13 total, MUST include 'digital download'],
-  "fileFormats": ["PDF", "JPG", "PNG", "SVG"],
+  "newTitle": "string (MUST end with 'Cuttora', include Cricut Silhouette Glowforge CNC Laser)",
+  "newDescription": "string (EXACT emoji format: 🎯 🛠️ 📦 📜 📥 ⚠️)",
+  "hashtags": ["13 SVG/CNC specific tags"],
+  "fileFormats": ["SVG", "PNG", "EPS", "DXF", "PDF"],
   "instantDownload": true,
-  "licenseInfo": "Personal use only" OR "Personal + Small Commercial Use",
+  "licenseInfo": "Personal use and Small Business commercial use (up to 500 physical items)",
   "socialMedia": {
-    "pinterestTitle": "string (60-100 chars)",
-    "pinterestDescription": "string (250-400 chars)",
-    "pinterestAltText": "string (125 chars)",
-    "pinterestHashtags": "#tag1 #tag2 #tag3 ... (10-15 tags)",
-    "instagramCaption": "string (200-300 chars)",
-    "instagramHashtags": "#tag1 #tag2 #tag3 ... (25-30 tags, line-separated)"
+    "pinterestTitle": "string",
+    "pinterestDescription": "string",
+    "pinterestAltText": "string (describe the image for accessibility)",
+    "pinterestHashtags": "string",
+    "instagramCaption": "string",
+    "instagramHashtags": "string"
   }
 }
 
 ---
 
-## 🎯 YOUR MISSION
+## 🎯 FINAL INSTRUCTIONS:
 
-Using:
-- **Current Title:** ${title}
-- **Current Description:** ${description}
-- **Product Type:** ${productType}
-- **Niche:** ${niche}
+Using the uploaded IMAGE (if provided) and USER INPUTS:
+- **User Title:** ${title}
+- **User Description:** ${description}
 
-Generate a PERFECT digital product listing that:
-1. Clearly states it's a digital download
-2. Lists exact file formats
-3. Explains usage rights
-4. Optimized for Pinterest (main traffic source)
-5. NO AI jargon
+1. **ANALYZE the image** to identify the subject, action, and style
+2. **GENERATE TITLE** following: [Subject] Silhouette SVG ... Cuttora format
+3. **GENERATE DESCRIPTION** with EXACT emoji sections (only customize 🎯 QUICK OVERVIEW)
+4. **GENERATE 13 TAGS** for SVG/CNC products
+5. **GENERATE social media** content
 
-**GENERATE JSON NOW. NO PREAMBLE.**
+**CRITICAL:**
+- Description MUST have emojis: 🎯 🛠️ 📦 📜 📥 ⚠️
+- Only customize the "QUICK OVERVIEW" section
+- All other sections use EXACT template text
+- Title MUST end with "Cuttora"
+
+**RETURN ONLY JSON. NO PREAMBLE.**
         `;
 
         parts.push({ text: prompt });
 
         try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.0-flash",
-                contents: [{ parts }],
-                config: {
-                    responseMimeType: "application/json",
-                    temperature: 0.6,
-                    maxOutputTokens: 4096
+            console.log('📡 Calling Gemini API...');
+
+            // ✅ GÜNCELLENMİŞ MODEL ADI
+            const model = ai.getGenerativeModel({ 
+                model: "gemini-2.5-flash" // veya "gemini-2.5-pro"
+            });
+
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 4096,
+                    responseMimeType: "application/json"
                 }
             });
 
-            const jsonText = cleanJsonString(response.text || "{}");
+            const response = await result.response;
+            const jsonText = cleanJsonString(response.text());
+
+            console.log('📦 Raw response:', jsonText);
+
             const parsed = JSON.parse(jsonText);
 
             // Dual validation: Digital + Etsy
@@ -265,10 +305,10 @@ Generate a PERFECT digital product listing that:
             console.log(`📊 Digital Product Score: ${combinedScore}/100`);
 
             if (digitalValidation.errors.length > 0) {
-                console.error('❌ Digital Validation:', digitalValidation.errors);
+                console.warn('⚠️ Digital Validation:', digitalValidation.errors);
             }
             if (etsyValidation.errors.length > 0) {
-                console.error('❌ Etsy Validation:', etsyValidation.errors);
+                console.warn('⚠️ Etsy Validation:', etsyValidation.errors);
             }
 
             if (combinedScore >= 70) {
@@ -280,7 +320,7 @@ Generate a PERFECT digital product listing that:
                 else return jsonText;
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(`❌ Attempt ${attempt} failed:`, error);
             if (attempt === maxRetries) {
                 throw new Error(`Digital product generation failed: ${error.message}`);
