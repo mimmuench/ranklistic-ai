@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from './services/client';
-import { createClient } from '@supabase/supabase-js'
+import { supabase, authService } from './services/client';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Dashboard } from './components/Dashboard';
@@ -85,47 +84,36 @@ export default function App() {
 
     const initAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const profile = await authService.getCurrentUser(); 
         
         if (!mounted) return;
         
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setLoading(false);
-          return;
+        if (profile) {
+          setUser({ id: profile.id, email: profile.email });
+          setUserProfile(profile); 
         }
 
-        if (session?.user) {
-          setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        } else {
-          setLoading(false);
-        }
-
-        // Auth state değişikliklerini dinle
         const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
           if (!mounted) return;
 
-          console.log('Auth event:', event);
-
           if (event === 'SIGNED_IN' && newSession?.user) {
-            if (!userProfile || userProfile.id !== newSession.user.id) {
-              await fetchUserProfile(newSession.user.id);
+            const p = await authService.getCurrentUser();
+            if (p) {
+              setUser(newSession.user);
+              setUserProfile(p);
             }
-            setUser(newSession.user);
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
             setUserProfile(null);
-          } else if (event === 'TOKEN_REFRESHED' && newSession?.user) {
-            setUser(newSession.user);
           }
-          
           setLoading(false);
         });
 
         authSubscription = data.subscription;
       } catch (error) {
         console.error('Auth initialization error:', error);
+        if (mounted) setLoading(false);
+      } finally {
         if (mounted) setLoading(false);
       }
     };
@@ -353,17 +341,18 @@ export default function App() {
 
   // --- NOT LOGGED IN -> LANDING PAGE ---
   if (!user) {
-    return (
+    return ( 
       <LandingPage 
-        onGetStarted={handleGoogleLogin}
-        onLoginSuccess={(u) => { 
-          setUser(u.user || u); 
-          if (u.profile) setUserProfile(u.profile);
-        }}
-      />
-    );
+	    onGetStarted={handleGoogleLogin}
+	    onLoginSuccess={(profile) => { 
+		  // profile artık authService.getCurrentUser'dan gelen dolu objedir
+		  setUser({ id: profile.id, email: profile.email }); 
+		  setUserProfile(profile); 
+	    }}
+	  />
+	);
   }
-
+  
   // --- LOGGED IN -> DASHBOARD ---
   return (
     <BrowserRouter>
